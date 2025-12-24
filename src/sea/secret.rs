@@ -42,7 +42,8 @@ pub async fn derive_secret(
 
     // Return as base64 (matching Gun.js format)
     #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
-    Ok(general_purpose::STANDARD_NO_PAD.encode(&shared_point.as_slice()))
+    #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
+    Ok(general_purpose::STANDARD_NO_PAD.encode(shared_point.as_slice()))
 }
 
 /// Parse an epub key (format: x.y base64) into a PublicKey
