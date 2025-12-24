@@ -187,8 +187,7 @@ impl LocalStorage {
         let encoded_soul = urlencoding::encode(soul);
         let file_path = self.data_dir.join(encoded_soul.as_ref());
 
-        let json_str =
-            serde_json::to_string_pretty(node).map_err(|e| GunError::Serialization(e))?;
+        let json_str = serde_json::to_string_pretty(node).map_err(GunError::Serialization)?;
 
         // Write atomically: write to temp file, then rename
         let temp_path = file_path.with_extension("tmp");

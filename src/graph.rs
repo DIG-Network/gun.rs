@@ -77,14 +77,14 @@ impl Graph {
             .get(">")
             .and_then(|v| v.as_object())
             .cloned()
-            .unwrap_or_else(|| serde_json::Map::new());
+            .unwrap_or_else(serde_json::Map::new);
 
         let incoming_states = incoming
             .meta
             .get(">")
             .and_then(|v| v.as_object())
             .cloned()
-            .unwrap_or_else(|| serde_json::Map::new());
+            .unwrap_or_else(serde_json::Map::new);
 
         // Merge data fields based on state comparison
         for (key, incoming_value) in incoming.data.iter() {
