@@ -30,16 +30,16 @@ use webrtc::peer_connection::RTCPeerConnection;
 pub struct WebRTCOptions {
     /// ICE servers for NAT traversal (STUN/TURN)
     pub ice_servers: Vec<RTCIceServer>,
-    
+
     /// Data channel configuration
     pub data_channel: RTCDataChannelInit,
-    
+
     /// Maximum number of WebRTC connections (default 55, matching Gun.js)
     pub max_connections: usize,
-    
+
     /// Room name for peer discovery (optional)
     pub room: Option<String>,
-    
+
     /// Enable WebRTC (default true)
     pub enabled: bool,
 }
@@ -47,7 +47,7 @@ pub struct WebRTCOptions {
 impl Default for WebRTCOptions {
     fn default() -> Self {
         let mut ice_servers = Vec::new();
-        
+
         // Default STUN servers (matching Gun.js)
         ice_servers.push(RTCIceServer {
             urls: vec!["stun:stun.l.google.com:19302".to_string()],
@@ -55,7 +55,7 @@ impl Default for WebRTCOptions {
             credential: String::new(),
             credential_type: RTCIceCredentialType::Password,
         });
-        
+
         ice_servers.push(RTCIceServer {
             urls: vec!["stun:stun.cloudflare.com:3478".to_string()],
             username: String::new(),
@@ -121,14 +121,13 @@ impl WebRTCPeer {
         };
 
         // Create peer connection
-        let pc = Arc::new(
-            api.new_peer_connection(rtc_config)
-                .await
-                .map_err(|e| GunError::Network(format!("Failed to create RTCPeerConnection: {}", e)))?,
-        );
+        let pc = Arc::new(api.new_peer_connection(rtc_config).await.map_err(|e| {
+            GunError::Network(format!("Failed to create RTCPeerConnection: {}", e))
+        })?);
 
         // Create data channel
-        let data_channel = pc.create_data_channel("dc", Some(config.data_channel.clone()))
+        let data_channel = pc
+            .create_data_channel("dc", Some(config.data_channel.clone()))
             .await
             .map_err(|e| GunError::Network(format!("Failed to create data channel: {}", e)))?;
 
@@ -160,15 +159,21 @@ impl WebRTCPeer {
 
         // Set up ICE candidate handler
         let peer_id_for_candidates = peer_id.clone();
-        pc.on_ice_candidate(Box::new(move |candidate: Option<webrtc::ice_transport::ice_candidate::RTCIceCandidate>| {
-            let peer_id_clone = peer_id_for_candidates.clone();
-            Box::pin(async move {
-                if let Some(candidate) = candidate {
-                    tracing::debug!("ICE candidate for peer {}: {:?}", peer_id_clone, candidate);
-                    // ICE candidates will be sent via DAM protocol signaling
-                }
-            })
-        }));
+        pc.on_ice_candidate(Box::new(
+            move |candidate: Option<webrtc::ice_transport::ice_candidate::RTCIceCandidate>| {
+                let peer_id_clone = peer_id_for_candidates.clone();
+                Box::pin(async move {
+                    if let Some(candidate) = candidate {
+                        tracing::debug!(
+                            "ICE candidate for peer {}: {:?}",
+                            peer_id_clone,
+                            candidate
+                        );
+                        // ICE candidates will be sent via DAM protocol signaling
+                    }
+                })
+            },
+        ));
 
         Ok((
             Self {
@@ -198,12 +203,12 @@ impl WebRTCPeer {
             .create_offer(None)
             .await
             .map_err(|e| GunError::Network(format!("Failed to create offer: {}", e)))?;
-        
+
         self.pc
             .set_local_description(offer.clone())
             .await
             .map_err(|e| GunError::Network(format!("Failed to set local description: {}", e)))?;
-        
+
         Ok(offer)
     }
 
@@ -214,12 +219,12 @@ impl WebRTCPeer {
             .create_answer(None)
             .await
             .map_err(|e| GunError::Network(format!("Failed to create answer: {}", e)))?;
-        
+
         self.pc
             .set_local_description(answer.clone())
             .await
             .map_err(|e| GunError::Network(format!("Failed to set local description: {}", e)))?;
-        
+
         Ok(answer)
     }
 
@@ -243,9 +248,13 @@ impl WebRTCPeer {
 
     /// Close the peer connection
     pub async fn close(&self) -> GunResult<()> {
-        self.data_channel.close().await
+        self.data_channel
+            .close()
+            .await
             .map_err(|e| GunError::Network(format!("Failed to close data channel: {}", e)))?;
-        self.pc.close().await
+        self.pc
+            .close()
+            .await
             .map_err(|e| GunError::Network(format!("Failed to close peer connection: {}", e)))?;
         Ok(())
     }
@@ -369,7 +378,7 @@ impl WebRTCManager {
             let peer_id_for_task = peer_id.to_string();
             let options_clone = self.options.clone();
             let (peer, mut rx) = WebRTCPeer::new(peer_id_for_task.clone(), &options_clone).await?;
-            
+
             // Set up message receiver to forward to mesh
             // We use a separate task that doesn't hold references to avoid Send issues
             let mesh_clone = self.mesh.clone();
@@ -401,7 +410,7 @@ impl WebRTCManager {
                 .and_then(|v| v.as_str())
                 .map(|s| s.replace("\\r\\n", "\r\n"))
                 .unwrap_or_default();
-            
+
             let desc = RTCSessionDescription::offer(sdp_str)
                 .map_err(|e| GunError::WebRTC(format!("Failed to parse offer SDP: {}", e)))?;
 
@@ -414,7 +423,8 @@ impl WebRTCManager {
                 peer.set_remote_description(desc).await?;
                 let answer = peer.create_answer().await?;
                 drop(peers); // Release lock before async send
-                self.send_rtc_message(&peer_id_clone, "answer", &answer).await?;
+                self.send_rtc_message(&peer_id_clone, "answer", &answer)
+                    .await?;
             }
         }
 
@@ -442,7 +452,7 @@ impl WebRTCManager {
 
         // Create new peer connection
         let (peer, mut rx) = WebRTCPeer::new(peer_id.to_string(), &self.options).await?;
-        
+
         // Set up message receiver (clone before acquiring write lock)
         let mesh_clone = self.mesh.clone();
         tokio::spawn(async move {
@@ -456,13 +466,13 @@ impl WebRTCManager {
 
         // Create and send offer
         let offer = peer.create_offer().await?;
-        
+
         // Insert peer and send offer
         {
             let mut peers = self.peers.write().await;
             peers.insert(peer_id.to_string(), peer);
         } // Lock released here
-        
+
         self.send_rtc_message(peer_id, "offer", &offer).await?;
 
         Ok(())
@@ -498,13 +508,17 @@ impl WebRTCManager {
                     "sdp": sdp.sdp
                 });
             }
-            _ => return Err(GunError::InvalidData(format!("Unknown RTC message type: {}", msg_type))),
+            _ => {
+                return Err(GunError::InvalidData(format!(
+                    "Unknown RTC message type: {}",
+                    msg_type
+                )))
+            }
         }
 
         // Send through mesh
-        let msg_str = serde_json::to_string(&rtc_msg)
-            .map_err(|e| GunError::Serialization(e))?;
-        
+        let msg_str = serde_json::to_string(&rtc_msg).map_err(|e| GunError::Serialization(e))?;
+
         // Find the peer in mesh and send
         // This will go through WebSocket if WebRTC isn't established yet
         // Once WebRTC is established, messages will go through the data channel
@@ -527,7 +541,7 @@ impl WebRTCManager {
                 return peer.send(message).await;
             }
         }
-        
+
         // Fall back to WebSocket via mesh
         self.mesh.send_to_peer_by_id(message, peer_id).await
     }
@@ -565,4 +579,3 @@ pub struct RTCMessageCandidate {
     pub sdp_mid: Option<String>,
     pub sdp_m_line_index: Option<u16>,
 }
-

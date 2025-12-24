@@ -1,3 +1,4 @@
+use gun::webrtc::WebRTCOptions;
 /// Example: Two clients connecting via WebRTC for direct peer-to-peer communication
 ///
 /// This example demonstrates:
@@ -9,7 +10,6 @@
 ///
 /// Run with: `cargo run --example two_clients_webrtc`
 use gun::{Gun, GunOptions};
-use gun::webrtc::WebRTCOptions;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::time::sleep;
@@ -37,7 +37,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("WebRTC Configuration:");
     println!("  - Enabled: {}", webrtc_options.enabled);
     println!("  - Max connections: {}", webrtc_options.max_connections);
-    println!("  - STUN servers: {} configured", webrtc_options.ice_servers.len());
+    println!(
+        "  - STUN servers: {} configured",
+        webrtc_options.ice_servers.len()
+    );
     println!();
 
     // Create first client with WebRTC enabled
@@ -55,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_millis(2000)).await;
     let count1 = client1.connected_peer_count().await;
     println!("[Client 1] ✓ Connected peers (via relay): {}", count1);
-    
     if count1 == 0 {
         if client1.wait_for_connection(5000).await {
             println!("[Client 1] ✓ Connection established");
@@ -79,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_millis(2000)).await;
     let count2 = client2.connected_peer_count().await;
     println!("[Client 2] ✓ Connected peers (via relay): {}", count2);
-    
+
     if count2 == 0 {
         if client2.wait_for_connection(5000).await {
             println!("[Client 2] ✓ Connection established");
@@ -97,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - SDP offer/answer negotiation");
     println!("  - Direct P2P connection establishment");
     println!("[WebRTC] This may take 10-30 seconds depending on network conditions...\n");
-    
+
     // Wait longer for WebRTC connection to establish
     // WebRTC requires STUN server responses and ICE candidate exchange
     for i in 0..20 {
@@ -138,7 +140,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if transport == Some("webrtc") {
                         println!("[Client 2] ✅ Received via direct WebRTC connection!");
                     } else {
-                        println!("[Client 2] ✅ Received via relay (WebRTC may not be established)");
+                        println!(
+                            "[Client 2] ✅ Received via relay (WebRTC may not be established)"
+                        );
                     }
                 }
             }
@@ -179,7 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
     }
-    
+
     if !success {
         println!("\n⚠ Warning: Client 2 did not receive data within timeout");
         println!("Possible reasons:");
@@ -247,9 +251,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             success2 = true;
             break;
-            }
         }
-    
+    }
+
     if !success2 {
         println!("\n⚠ Warning: Client 1 did not receive data within timeout");
     }
@@ -330,4 +334,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

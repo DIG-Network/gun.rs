@@ -1,3 +1,4 @@
+use gun::webrtc::WebRTCOptions;
 /// Test: Two clients connecting via WebRTC for direct peer-to-peer communication
 ///
 /// This test demonstrates:
@@ -9,7 +10,6 @@
 ///
 /// Run with: `cargo test --test webrtc_two_clients -- --nocapture`
 use gun::{Gun, GunOptions};
-use gun::webrtc::WebRTCOptions;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::time::{sleep, timeout, Duration};
@@ -283,4 +283,3 @@ async fn test_webrtc_two_clients() {
     .await
     .expect("Test should complete within timeout");
 }
-

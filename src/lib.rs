@@ -17,7 +17,7 @@ pub use chain::Chain;
 pub use error::GunError;
 pub use gun::{Gun, GunOptions};
 pub use valid::valid;
-pub use webrtc::{WebRTCOptions, WebRTCManager, WebRTCPeer};
+pub use webrtc::{WebRTCManager, WebRTCOptions, WebRTCPeer};
 
 #[cfg(test)]
 mod tests {

@@ -3,7 +3,7 @@ use crate::core::GunCore;
 use crate::dam::Mesh;
 use crate::error::GunResult;
 use crate::storage::{LocalStorage, SledStorage, Storage};
-use crate::webrtc::{WebRTCOptions, WebRTCManager};
+use crate::webrtc::{WebRTCManager, WebRTCOptions};
 use crate::websocket::{WebSocketClient, WebSocketServer};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
