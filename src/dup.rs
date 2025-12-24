@@ -13,7 +13,7 @@ pub struct Dup {
 #[derive(Clone, Debug)]
 struct MessageEntry {
     was: Instant,
-    via: Option<String>, // peer ID that sent this
+    via: Option<String>,           // peer ID that sent this
     it: Option<serde_json::Value>, // optional message data
 }
 
@@ -49,13 +49,14 @@ impl Dup {
     /// Returns true if tracked
     pub fn track(&mut self, id: &str) -> bool {
         let mut messages = self.messages.write().unwrap();
-        
+
         // Check size limit
         if messages.len() >= self.max_size {
             self.drop_expired(&mut messages);
         }
 
-        let entry = messages.entry(id.to_string())
+        let entry = messages
+            .entry(id.to_string())
             .or_insert_with(|| MessageEntry {
                 was: Instant::now(),
                 via: None,
@@ -68,7 +69,8 @@ impl Dup {
     /// Track with peer info
     pub fn track_with_peer(&mut self, id: &str, peer_id: Option<&str>) {
         let mut messages = self.messages.write().unwrap();
-        let entry = messages.entry(id.to_string())
+        let entry = messages
+            .entry(id.to_string())
             .or_insert_with(|| MessageEntry {
                 was: Instant::now(),
                 via: None,
@@ -83,9 +85,7 @@ impl Dup {
     /// Drop expired entries
     fn drop_expired(&self, messages: &mut HashMap<String, MessageEntry>) {
         let now = Instant::now();
-        messages.retain(|_, entry| {
-            now.duration_since(entry.was) < self.max_age
-        });
+        messages.retain(|_, entry| now.duration_since(entry.was) < self.max_age);
     }
 
     /// Drop all expired entries
@@ -106,11 +106,14 @@ impl Dup {
         if let Some(entry) = messages.get_mut(id) {
             entry.it = Some(data);
         } else {
-            messages.insert(id.to_string(), MessageEntry {
-                was: Instant::now(),
-                via: None,
-                it: Some(data),
-            });
+            messages.insert(
+                id.to_string(),
+                MessageEntry {
+                    was: Instant::now(),
+                    via: None,
+                    it: Some(data),
+                },
+            );
         }
     }
 
@@ -132,4 +135,3 @@ impl Default for Dup {
         Self::default()
     }
 }
-

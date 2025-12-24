@@ -1,0 +1,15 @@
+{
+  "data": {
+    "message": "Hello from Rust!",
+    "test": true,
+    "timestamp": 1766599573827
+  },
+  "meta": {
+    "#": "test_put_get_1766599573827",
+    ">": {
+      "message": 1766599573827.0,
+      "test": 1766599573827.0,
+      "timestamp": 1766599573827.001
+    }
+  }
+}

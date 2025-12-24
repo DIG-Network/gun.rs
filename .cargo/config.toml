@@ -1,0 +1,19 @@
+# Cargo configuration for gun.rs
+
+# Note: jobs = 0 is not valid, cargo uses all cores by default
+
+[net]
+# Retry network operations
+retry = 2
+git-fetch-with-cli = true
+
+[profile.dev]
+# Optimize dependencies even in dev mode for faster runtime
+opt-level = 1
+debug = true
+
+[profile.test]
+# Optimize tests for faster execution
+opt-level = 1
+debug = true
+

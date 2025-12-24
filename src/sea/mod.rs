@@ -2,21 +2,21 @@
 //! Based on Gun.js sea/ directory
 //! Provides encryption, authentication, and authorization capabilities
 
-mod pair;
-mod user;
-mod sign;
-mod verify;
-mod encrypt;
 mod decrypt;
+mod encrypt;
+mod pair;
 mod secret;
+mod sign;
+mod user;
+mod verify;
 
-pub use pair::*;
-pub use user::*;
-pub use sign::*;
-pub use verify::*;
-pub use encrypt::*;
 pub use decrypt::*;
+pub use encrypt::*;
+pub use pair::*;
 pub use secret::*;
+pub use sign::*;
+pub use user::*;
+pub use verify::*;
 
 /// Key pair for signing and encryption
 #[derive(Clone, Debug)]
@@ -56,4 +56,3 @@ pub enum SeaError {
     #[error("Decryption error: {0}")]
     Decryption(String),
 }
-

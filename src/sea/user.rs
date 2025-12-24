@@ -2,26 +2,23 @@
 //! Based on Gun.js sea/user.js
 //! User creation, authentication, and password management
 
-use super::{KeyPair, UserAuth, SeaError};
 use super::pair;
-use sha2::{Sha256, Digest};
-use base64::{Engine as _, engine::general_purpose};
+use super::{KeyPair, SeaError, UserAuth};
+use base64::{engine::general_purpose, Engine as _};
 use pbkdf2::pbkdf2_hmac;
+use sha2::{Digest, Sha256};
 
 /// Create a new user with key pair
 /// Generates a key pair and optional alias
 pub async fn create_user(alias: Option<String>) -> Result<UserAuth, SeaError> {
     let pair = pair::generate_pair().await?;
-    Ok(UserAuth {
-        pair,
-        alias,
-    })
+    Ok(UserAuth { pair, alias })
 }
 
 /// Authenticate user with password
 /// This is a simplified implementation - full Gun.js user auth involves
 /// storing encrypted keys and password hashes in the graph
-/// 
+///
 /// For now, we'll implement a basic password hash verification
 pub async fn authenticate(alias: &str, password: &str) -> Result<UserAuth, SeaError> {
     // TODO: Full implementation would:
@@ -29,9 +26,11 @@ pub async fn authenticate(alias: &str, password: &str) -> Result<UserAuth, SeaEr
     // 2. Verify password hash
     // 3. Decrypt user's private keys
     // 4. Return authenticated UserAuth
-    
+
     // For now, this is a placeholder
-    Err(SeaError::Crypto("Full authentication not yet implemented - requires graph storage integration".to_string()))
+    Err(SeaError::Crypto(
+        "Full authentication not yet implemented - requires graph storage integration".to_string(),
+    ))
 }
 
 /// Hash a password using PBKDF2

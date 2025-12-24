@@ -1,6 +1,6 @@
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use parking_lot::Mutex;
 
 /// Event system - handles events and hooks
 /// Based on Gun.js onto.js and event system
@@ -35,15 +35,16 @@ impl EventEmitter {
     /// Returns the listener ID for later removal
     pub fn on(&self, event_type: &str, callback: EventCallback) -> u64 {
         let mut listeners = self.listeners.write().unwrap();
-        let callbacks = listeners.entry(event_type.to_string())
+        let callbacks = listeners
+            .entry(event_type.to_string())
             .or_insert_with(Vec::new);
-        
+
         let id = {
             let mut counter = self.id_counter.lock();
             *counter += 1;
             *counter
         };
-        
+
         callbacks.push(ListenerEntry {
             id,
             callback: Arc::new(callback),
@@ -62,7 +63,7 @@ impl EventEmitter {
             }
         }
     }
-    
+
     /// Remove all listeners for an event type
     pub fn off_all(&self, event_type: &str) {
         let mut listeners = self.listeners.write().unwrap();
@@ -74,11 +75,12 @@ impl EventEmitter {
         let listeners = self.listeners.read().unwrap();
         if let Some(callbacks) = listeners.get(&event.event_type) {
             // Clone callbacks to avoid holding lock during execution
-            let callbacks: Vec<Arc<EventCallback>> = callbacks.iter()
+            let callbacks: Vec<Arc<EventCallback>> = callbacks
+                .iter()
                 .map(|entry| entry.callback.clone())
                 .collect();
             drop(listeners); // Release lock before calling callbacks
-            
+
             for callback in callbacks.iter() {
                 callback(event);
             }
@@ -89,7 +91,7 @@ impl EventEmitter {
     pub fn remove_all_listeners(&self, event_type: &str) {
         self.off_all(event_type);
     }
-    
+
     /// Get count of listeners for an event type
     pub fn listener_count(&self, event_type: &str) -> usize {
         let listeners = self.listeners.read().unwrap();
@@ -102,4 +104,3 @@ impl Default for EventEmitter {
         Self::new()
     }
 }
-

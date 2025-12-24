@@ -1,0 +1,15 @@
+{
+  "data": {
+    "count": 5,
+    "message": "Message number 5",
+    "source": "client1"
+  },
+  "meta": {
+    "#": "two_clients_test_1766600198446_multiple",
+    ">": {
+      "count": 1766600211102.0,
+      "message": 1766600211102.0,
+      "source": 1766600211102.001
+    }
+  }
+}

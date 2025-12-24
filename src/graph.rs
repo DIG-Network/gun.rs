@@ -1,9 +1,9 @@
+use crate::error::GunResult;
+use crate::state::Node;
 use parking_lot::RwLock;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::state::Node;
-use crate::error::GunResult;
 
 /// Graph - stores all nodes in the database
 /// Based on Gun.js graph structure
@@ -42,7 +42,12 @@ impl Graph {
 
     /// Merge a node into the graph with conflict resolution
     /// Based on HAM (Hypothetical Amnesia Machine) algorithm
-    pub fn merge(&self, soul: &str, incoming: &Node, state_fn: impl Fn() -> f64) -> GunResult<Node> {
+    pub fn merge(
+        &self,
+        soul: &str,
+        incoming: &Node,
+        state_fn: impl Fn() -> f64,
+    ) -> GunResult<Node> {
         let mut nodes = self.nodes.write();
         let existing = nodes.get(soul);
 
@@ -67,37 +72,46 @@ impl Graph {
         let current_state = state_fn();
 
         // Get states from both nodes
-        let existing_states = existing.meta.get(">")
+        let existing_states = existing
+            .meta
+            .get(">")
             .and_then(|v| v.as_object())
             .cloned()
             .unwrap_or_else(|| serde_json::Map::new());
 
-        let incoming_states = incoming.meta.get(">")
+        let incoming_states = incoming
+            .meta
+            .get(">")
             .and_then(|v| v.as_object())
             .cloned()
             .unwrap_or_else(|| serde_json::Map::new());
 
         // Merge data fields based on state comparison
         for (key, incoming_value) in incoming.data.iter() {
-            let existing_state = existing_states.get(key)
+            let existing_state = existing_states
+                .get(key)
                 .and_then(|v| v.as_f64())
                 .unwrap_or(f64::NEG_INFINITY);
 
-            let incoming_state = incoming_states.get(key)
+            let incoming_state = incoming_states
+                .get(key)
                 .and_then(|v| v.as_f64())
                 .unwrap_or(f64::NEG_INFINITY);
 
             if incoming_state >= existing_state {
                 merged.data.insert(key.clone(), incoming_value.clone());
-                
+
                 // Update state
-                let states = merged.meta.entry(">".to_string())
+                let states = merged
+                    .meta
+                    .entry(">".to_string())
                     .or_insert_with(|| Value::Object(serde_json::Map::new()));
-                
+
                 if let Value::Object(ref mut map) = states {
-                    map.insert(key.clone(), Value::Number(
-                        serde_json::Number::from_f64(incoming_state).unwrap()
-                    ));
+                    map.insert(
+                        key.clone(),
+                        Value::Number(serde_json::Number::from_f64(incoming_state).unwrap()),
+                    );
                 }
             }
         }
@@ -118,4 +132,3 @@ impl Default for Graph {
         Self::new()
     }
 }
-

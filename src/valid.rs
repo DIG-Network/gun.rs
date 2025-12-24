@@ -12,11 +12,11 @@ use serde_json::Value;
 pub fn valid(value: &Value) -> Result<bool, Option<String>> {
     match value {
         Value::Null => Ok(true), // null is valid (deletes)
-        
+
         Value::String(_) => Ok(true), // strings are always valid
-        
+
         Value::Bool(_) => Ok(true), // booleans are valid
-        
+
         Value::Number(n) => {
             // Numbers are valid if not Infinity and not NaN
             // v === v checks for NaN (NaN !== NaN)
@@ -29,8 +29,8 @@ pub fn valid(value: &Value) -> Result<bool, Option<String>> {
             } else {
                 Ok(true) // Integer is always valid
             }
-        },
-        
+        }
+
         Value::Object(obj) => {
             // Check if it's a soul reference: object with only "#" key
             if obj.len() == 1 {
@@ -44,8 +44,8 @@ pub fn valid(value: &Value) -> Result<bool, Option<String>> {
             // Regular objects are not directly valid (must be nodes with soul)
             // But we allow them for put() to handle
             Ok(false)
-        },
-        
+        }
+
         Value::Array(_) => {
             // Arrays are not directly supported in Gun.js
             // They need special algorithms for concurrency
@@ -84,4 +84,3 @@ pub fn is_valid_data(value: &Value) -> bool {
         _ => false,
     }
 }
-

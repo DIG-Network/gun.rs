@@ -1,10 +1,10 @@
-use crate::core::GunCore;
 use crate::chain::Chain;
-use crate::storage::{SledStorage, LocalStorage, Storage};
+use crate::core::GunCore;
 use crate::dam::Mesh;
+use crate::error::GunResult;
+use crate::storage::{LocalStorage, SledStorage, Storage};
 use crate::websocket::{WebSocketClient, WebSocketServer};
 use std::sync::Arc;
-use crate::error::GunResult;
 use tokio::task::JoinHandle;
 
 /// Main Gun instance - entry point for the library
@@ -46,16 +46,16 @@ impl Gun {
         } else {
             Arc::new(GunCore::new())
         };
-        
+
         // Create mesh if we have peers or are a super peer
         let mesh = if !options.peers.is_empty() || options.super_peer {
             Some(Arc::new(Mesh::new(core.clone())))
         } else {
             None
         };
-        
+
         let mut ws_server = None;
-        
+
         // Start WebSocket server if in super peer mode
         if let (Some(ref mesh_ref), Some(port)) = (&mesh, options.port) {
             let server = WebSocketServer::new(core.clone(), mesh_ref.clone(), port);
@@ -67,17 +67,24 @@ impl Gun {
             });
             ws_server = Some(handle);
         }
-        
+
         // Connect to peer URLs
         if let Some(ref mesh_ref) = mesh {
             let client = WebSocketClient::new(core.clone(), mesh_ref.clone());
+            // Connect to all peers (always through public IPs for NAT traversal)
             for peer_url in &options.peers {
-                if let Err(e) = client.connect(peer_url).await {
-                    eprintln!("Failed to connect to peer {}: {}", peer_url, e);
+                match client.connect(peer_url).await {
+                    Ok(_) => {
+                        println!("Successfully connected to peer: {}", peer_url);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to connect to peer {}: {}", peer_url, e);
+                        // Continue trying other peers even if one fails
+                    }
                 }
             }
         }
-        
+
         Ok(Self {
             core,
             mesh,
@@ -90,11 +97,7 @@ impl Gun {
     pub fn get(&self, key: &str) -> Arc<Chain> {
         // Check if key is a soul or needs to be resolved
         // For now, create a chain with the key as soul
-        Arc::new(Chain::with_soul(
-            self.core.clone(),
-            key.to_string(),
-            None,
-        ))
+        Arc::new(Chain::with_soul(self.core.clone(), key.to_string(), None))
     }
 
     /// Get the root chain
@@ -106,15 +109,43 @@ impl Gun {
     pub fn state(&self) -> f64 {
         self.core.state.next()
     }
-    
+
     /// Get the core (internal use)
     pub(crate) fn core(&self) -> &Arc<GunCore> {
         &self.core
     }
-    
+
     /// Get the mesh (internal use)
     pub(crate) fn mesh(&self) -> Option<&Arc<Mesh>> {
         self.mesh.as_ref()
+    }
+
+    /// Get the number of connected peers
+    pub async fn connected_peer_count(&self) -> usize {
+        if let Some(ref mesh) = self.mesh {
+            mesh.connected_peer_count().await
+        } else {
+            0
+        }
+    }
+
+    /// Check if any peers are connected
+    pub async fn is_connected(&self) -> bool {
+        if let Some(ref mesh) = self.mesh {
+            mesh.has_connected_peers().await
+        } else {
+            false
+        }
+    }
+
+    /// Wait for at least one peer connection to be established
+    /// Returns true if connection was established, false if timeout was reached
+    pub async fn wait_for_connection(&self, timeout_ms: u64) -> bool {
+        if let Some(ref mesh) = self.mesh {
+            mesh.wait_for_connection(timeout_ms).await
+        } else {
+            false
+        }
     }
 }
 
@@ -133,20 +164,20 @@ pub struct GunOptions {
     /// These are OPTIONAL - Gun works fully P2P without any relays
     /// Relays are just helpful peers for NAT traversal and connectivity
     pub peers: Vec<String>,
-    
+
     /// Storage path for persistent storage (sled)
     pub storage_path: Option<String>,
-    
+
     /// Enable radisk storage (persistent storage on disk)
     pub radisk: bool,
-    
+
     /// Enable localStorage (browser equivalent - not applicable in Rust, kept for API compatibility)
     pub localStorage: bool,
-    
+
     /// Super peer mode (relay server mode)
     /// When true, this peer acts as a relay server for others
     pub super_peer: bool,
-    
+
     /// Port to listen on (for relay server mode)
     pub port: Option<u16>,
 }
@@ -172,7 +203,7 @@ impl GunOptions {
             ..Default::default()
         }
     }
-    
+
     /// Create options with multiple peers (relays)
     pub fn with_peers(peers: Vec<String>) -> Self {
         Self {
@@ -180,7 +211,7 @@ impl GunOptions {
             ..Default::default()
         }
     }
-    
+
     /// Create options for relay server mode
     pub fn relay_server(port: u16) -> Self {
         Self {

@@ -1,10 +1,10 @@
 use crate::core::GunCore;
-use crate::state::Node;
 use crate::error::GunResult;
+use crate::state::Node;
 use crate::valid::valid;
 use serde_json::Value;
-use std::sync::Arc;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 /// Chain - the main API for interacting with Gun
 /// Based on Gun.js chain.js and IGunChain interface
@@ -58,7 +58,11 @@ impl Chain {
     /// Get a property or node by key
     /// Based on Gun.js chain.get()
     pub fn get(&self, key: &str) -> Arc<Chain> {
-        Arc::new(Chain::with_key(self.core.clone(), key.to_string(), Arc::new(self.clone())))
+        Arc::new(Chain::with_key(
+            self.core.clone(),
+            key.to_string(),
+            Arc::new(self.clone()),
+        ))
     }
 
     /// Put data into the current node/property
@@ -66,10 +70,10 @@ impl Chain {
     pub async fn put(&self, data: Value) -> GunResult<Arc<Chain>> {
         // Handle function callback (deferred data)
         // In Rust, this would be handled via async, so we'll skip this case for now
-        
+
         // Validate data
         match valid(&data) {
-            Ok(true) => {}, // Valid simple value
+            Ok(true) => {} // Valid simple value
             Err(Some(soul)) => {
                 // It's a soul reference, create link
                 let soul_chain = self.core.graph.get(&soul);
@@ -79,24 +83,33 @@ impl Chain {
                     let node = Node::with_soul(soul.clone());
                     self.core.graph.put(&soul, node)?;
                 }
-                return Ok(Arc::new(Chain::with_soul(self.core.clone(), soul, Some(Arc::new(self.clone())))));
-            },
+                return Ok(Arc::new(Chain::with_soul(
+                    self.core.clone(),
+                    soul,
+                    Some(Arc::new(self.clone())),
+                )));
+            }
             _ => {
                 // Invalid or object - handle object case
                 if let Value::Object(map) = data {
                     return self.put_object(map).await;
                 }
-                return Err(crate::error::GunError::InvalidData(format!("Invalid data type")));
+                return Err(crate::error::GunError::InvalidData(format!(
+                    "Invalid data type"
+                )));
             }
         }
-        
+
         let soul = match &self.soul {
             Some(s) => s.clone(),
             None => self.core.uuid(None),
         };
 
         // Create or update node
-        let mut node = self.core.graph.get(&soul)
+        let mut node = self
+            .core
+            .graph
+            .get(&soul)
             .unwrap_or_else(|| Node::with_soul(soul.clone()));
 
         // Merge data into node
@@ -112,7 +125,7 @@ impl Chain {
 
         // Store in graph
         self.core.graph.put(&soul, node.clone())?;
-        
+
         // Emit update event
         self.emit_update(&soul, &node.data);
 
@@ -121,9 +134,13 @@ impl Chain {
             storage.put(&soul, &node).await?;
         }
 
-        Ok(Arc::new(Chain::with_soul(self.core.clone(), soul, Some(Arc::new(self.clone())))))
+        Ok(Arc::new(Chain::with_soul(
+            self.core.clone(),
+            soul,
+            Some(Arc::new(self.clone())),
+        )))
     }
-    
+
     /// Helper to put an object (node) with proper traversal
     async fn put_object(&self, map: serde_json::Map<String, Value>) -> GunResult<Arc<Chain>> {
         let soul = match &self.soul {
@@ -131,13 +148,16 @@ impl Chain {
             None => self.core.uuid(None),
         };
 
-        let mut node = self.core.graph.get(&soul)
+        let mut node = self
+            .core
+            .graph
+            .get(&soul)
             .unwrap_or_else(|| Node::with_soul(soul.clone()));
 
         // Process each key-value pair
         for (k, v) in map {
             let state = self.core.state.next();
-            
+
             // Check if value is a soul reference
             match valid(&v) {
                 Err(Some(ref_soul)) => {
@@ -149,14 +169,15 @@ impl Chain {
                         self.core.graph.put(&ref_soul, placeholder)?;
                     }
                     // Store as soul reference
-                    node.data.insert(k.clone(), serde_json::json!({"#": ref_soul}));
-                },
+                    node.data
+                        .insert(k.clone(), serde_json::json!({"#": ref_soul}));
+                }
                 _ => {
                     // Regular value
                     node.data.insert(k.clone(), v.clone());
                 }
             }
-            
+
             crate::state::State::ify(&mut node, Some(&k), Some(state), Some(v), Some(&soul));
         }
 
@@ -167,9 +188,13 @@ impl Chain {
             storage.put(&soul, &node).await?;
         }
 
-        Ok(Arc::new(Chain::with_soul(self.core.clone(), soul, Some(Arc::new(self.clone())))))
+        Ok(Arc::new(Chain::with_soul(
+            self.core.clone(),
+            soul,
+            Some(Arc::new(self.clone())),
+        )))
     }
-    
+
     /// Emit update event for listeners (synchronous)
     fn emit_update(&self, soul: &str, data: &serde_json::Map<String, Value>) {
         let event_type = format!("node_update:{}", soul);
@@ -190,7 +215,7 @@ impl Chain {
         let soul = self.soul.clone();
         let key = self.key.clone();
         let listener_ids = self.listener_ids.clone();
-        
+
         let cb = Box::new(move |event: &crate::events::Event| {
             // Extract data and call callback
             let value = if let Some(key) = &key {
@@ -253,10 +278,10 @@ impl Chain {
         let chain = Arc::new(self.clone());
         let soul = self.soul.clone();
         let listener_ids = self.listener_ids.clone();
-        
+
         // Clone callback for use in closure
         let callback_clone = callback.clone();
-        
+
         // Subscribe to updates and call callback for each property
         if let Some(ref s) = soul {
             let event_type = format!("node_update:{}", s);
@@ -267,10 +292,10 @@ impl Chain {
                     }
                 }
             });
-            
+
             let listener_id = self.core.events.on(&event_type, cb);
             listener_ids.lock().insert(listener_id);
-            
+
             // Also call for current data if available
             if let Some(node) = self.core.graph.get(s) {
                 for (key, value) in node.data.iter() {
@@ -278,7 +303,7 @@ impl Chain {
                 }
             }
         }
-        
+
         chain
     }
 
@@ -299,7 +324,13 @@ impl Chain {
                         for (k, v) in map {
                             let state = self.core.state.next();
                             node.data.insert(k.clone(), v.clone());
-                            crate::state::State::ify(&mut node, Some(&k), Some(state), Some(v.clone()), Some(&new_soul));
+                            crate::state::State::ify(
+                                &mut node,
+                                Some(&k),
+                                Some(state),
+                                Some(v.clone()),
+                                Some(&new_soul),
+                            );
                         }
                         self.core.graph.put(&new_soul, node.clone())?;
                         if let Some(storage) = &self.core.storage {
@@ -309,31 +340,48 @@ impl Chain {
                     Some(new_soul)
                 } else {
                     // Non-object items can't be in sets
-                    return Err(crate::error::GunError::InvalidData("set() only accepts objects/nodes".to_string()));
+                    return Err(crate::error::GunError::InvalidData(
+                        "set() only accepts objects/nodes".to_string(),
+                    ));
                 }
             }
         };
-        
+
         if let Some(ref_soul) = soul {
             // Add reference to the set node
             let set_soul = self.soul.clone().unwrap_or_else(|| self.core.uuid(None));
-            let mut set_node = self.core.graph.get(&set_soul)
+            let mut set_node = self
+                .core
+                .graph
+                .get(&set_soul)
                 .unwrap_or_else(|| Node::with_soul(set_soul.clone()));
-            
+
             // Store reference to the item
             let key = ref_soul.clone();
             let state = self.core.state.next();
-            set_node.data.insert(key.clone(), serde_json::json!({"#": ref_soul}));
-            crate::state::State::ify(&mut set_node, Some(&key), Some(state), Some(serde_json::json!({"#": ref_soul})), Some(&set_soul));
-            
+            set_node
+                .data
+                .insert(key.clone(), serde_json::json!({"#": ref_soul}));
+            crate::state::State::ify(
+                &mut set_node,
+                Some(&key),
+                Some(state),
+                Some(serde_json::json!({"#": ref_soul})),
+                Some(&set_soul),
+            );
+
             self.core.graph.put(&set_soul, set_node.clone())?;
             self.emit_update(&set_soul, &set_node.data);
-            
+
             if let Some(storage) = &self.core.storage {
                 storage.put(&set_soul, &set_node).await?;
             }
-            
-            Ok(Arc::new(Chain::with_soul(self.core.clone(), set_soul, Some(Arc::new(self.clone())))))
+
+            Ok(Arc::new(Chain::with_soul(
+                self.core.clone(),
+                set_soul,
+                Some(Arc::new(self.clone())),
+            )))
         } else {
             self.put(item).await
         }
@@ -362,17 +410,17 @@ impl Chain {
         let listener_ids = self.listener_ids.lock();
         let ids: Vec<u64> = listener_ids.iter().cloned().collect();
         drop(listener_ids); // Release lock
-        
+
         let event_type = if let Some(ref s) = self.soul {
             format!("node_update:{}", s)
         } else {
             "graph_update".to_string()
         };
-        
+
         for id in ids {
             self.core.events.off(&event_type, id);
         }
-        
+
         self.listener_ids.lock().clear();
         Arc::new(self.clone())
     }

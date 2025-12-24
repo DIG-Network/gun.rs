@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// State module - manages timestamps for conflict resolution
 /// Based on Gun.js state.js
@@ -68,19 +68,25 @@ impl State {
         soul: Option<&str>,
     ) -> Node {
         if let Some(soul) = soul {
-            node.meta.insert("#".to_string(), serde_json::Value::String(soul.to_string()));
+            node.meta
+                .insert("#".to_string(), serde_json::Value::String(soul.to_string()));
         }
 
         if let Some(key) = key {
             if key != "_" {
-                let states = node.meta.entry(">".to_string())
+                let states = node
+                    .meta
+                    .entry(">".to_string())
                     .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
 
                 if let Some(state_num) = state {
                     if let serde_json::Value::Object(ref mut map) = states {
-                        map.insert(key.to_string(), serde_json::Value::Number(
-                            serde_json::Number::from_f64(state_num).unwrap()
-                        ));
+                        map.insert(
+                            key.to_string(),
+                            serde_json::Value::Number(
+                                serde_json::Number::from_f64(state_num).unwrap(),
+                            ),
+                        );
                     }
                 }
 
@@ -118,7 +124,8 @@ impl Node {
     }
 
     pub fn get_soul(&self) -> Option<String> {
-        self.meta.get("#")
+        self.meta
+            .get("#")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
     }
@@ -129,4 +136,3 @@ impl Default for Node {
         Self::new()
     }
 }
-

@@ -1,8 +1,8 @@
+use crate::dup::Dup;
+use crate::events::EventEmitter;
 use crate::graph::Graph;
 use crate::state::State;
-use crate::events::EventEmitter;
 use crate::storage::Storage;
-use crate::dup::Dup;
 use std::sync::Arc;
 
 /// Core Gun instance structure
@@ -44,21 +44,23 @@ impl GunCore {
     pub fn uuid(&self, length: Option<usize>) -> String {
         let len = length.unwrap_or(12);
         let state = self.state.next();
-        
+
         // Convert state to base36 string (similar to JavaScript toString(36))
         let state_str = format!("{:x}", state as u64).replace(".", "");
-        
+
         // Generate random alphanumeric string
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        let chars: Vec<char> = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".chars().collect();
+        let chars: Vec<char> = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            .chars()
+            .collect();
         let random_part: String = (0..len)
             .map(|_| {
                 let idx = rng.gen_range(0..chars.len());
                 chars[idx]
             })
             .collect();
-        
+
         format!("{}{}", state_str, random_part)
     }
 
@@ -66,7 +68,9 @@ impl GunCore {
     pub fn random_id(&self, length: usize) -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        let chars: Vec<char> = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".chars().collect();
+        let chars: Vec<char> = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            .chars()
+            .collect();
         (0..length)
             .map(|_| {
                 let idx = rng.gen_range(0..chars.len());
@@ -77,7 +81,8 @@ impl GunCore {
 
     /// Get next chain ID
     pub fn next_chain_id(&self) -> u64 {
-        self.id_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        self.id_counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
     }
 }
 
@@ -86,4 +91,3 @@ impl Default for GunCore {
         Self::new()
     }
 }
-

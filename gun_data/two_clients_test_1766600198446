@@ -1,0 +1,15 @@
+{
+  "data": {
+    "message": "Hello from Client 1!",
+    "source": "client1",
+    "timestamp": 1766600198446
+  },
+  "meta": {
+    "#": "two_clients_test_1766600198446",
+    ">": {
+      "message": 1766600198955.0,
+      "source": 1766600198955.0,
+      "timestamp": 1766600198955.001
+    }
+  }
+}

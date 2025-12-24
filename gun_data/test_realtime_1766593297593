@@ -1,0 +1,13 @@
+{
+  "data": {
+    "counter": 4,
+    "message": "Update 4"
+  },
+  "meta": {
+    "#": "test_realtime_1766593297593",
+    ">": {
+      "counter": 1766593298737.0,
+      "message": 1766593298737.0
+    }
+  }
+}

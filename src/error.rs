@@ -23,10 +23,9 @@ pub enum GunError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     #[error("URL parse error: {0}")]
     UrlParseError(#[from] url::ParseError),
 }
 
 pub type GunResult<T> = Result<T, GunError>;
-

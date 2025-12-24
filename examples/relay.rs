@@ -24,13 +24,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test: Save some data
     println!("Saving data...");
-    gun.get("test").get("message").put(json!("Hello from Rust!")).await?;
+    gun.get("test")
+        .get("message")
+        .put(json!("Hello from Rust!"))
+        .await?;
 
     // Test: Read data
     println!("Reading data...");
-    gun.get("test").get("message").once(|data, key| {
-        println!("Received: {:?}", data);
-    }).await?;
+    gun.get("test")
+        .get("message")
+        .once(|data, key| {
+            println!("Received: {:?}", data);
+        })
+        .await?;
 
     println!("Relay example complete!");
     println!("\nNote: The relay server is just a helpful peer - Gun.js is fully decentralized!");
@@ -38,4 +44,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
