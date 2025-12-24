@@ -69,7 +69,6 @@ async fn test_webrtc_two_clients() {
         // Give WebRTC time to discover peers and initiate connections
         println!("\n[WebRTC] Waiting for peer discovery and WebRTC connection establishment...");
         println!("[WebRTC] This may take up to 30 seconds due to STUN/TURN negotiation...");
-        
         // Wait longer for WebRTC connection to establish
         // WebRTC requires STUN server responses and ICE candidate exchange
         sleep(Duration::from_secs(10)).await;
@@ -140,7 +139,7 @@ async fn test_webrtc_two_clients() {
                 break;
             }
         }
-        
+
         if !success {
             println!("\n⚠ Warning: Client 2 did not receive data within timeout");
             println!("This might be due to:");
@@ -205,7 +204,7 @@ async fn test_webrtc_two_clients() {
                 break;
             }
         }
-        
+
         if !success2 {
             println!("\n⚠ Warning: Client 1 did not receive data within timeout");
         }
