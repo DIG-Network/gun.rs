@@ -169,9 +169,9 @@ impl Gun {
 
 ## Action Items
 
-- [ ] Decide: Remove or complete `MeshNetwork`?
-- [ ] Implement graceful shutdown using `ws_server` handle
-- [ ] Remove `src/network.rs` if not needed
+- [x] Decide: Remove or complete `MeshNetwork`? → **REMOVED** (was duplicate of `dam::Mesh`)
+- [x] Implement graceful shutdown using `ws_server` handle → **COMPLETED**
+- [x] Remove `src/network.rs` if not needed → **REMOVED**
 - [ ] Add tests for graceful shutdown
-- [ ] Update documentation to reflect final API decisions
+- [x] Update documentation to reflect final API decisions → **UPDATED**
 
