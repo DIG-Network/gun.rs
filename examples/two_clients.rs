@@ -36,8 +36,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_millis(2000)).await;
     let count1 = client1.connected_peer_count().await;
     println!("[Client 1] Connected peers: {}", count1);
-    assert!(count1 > 0 || client1.wait_for_connection(5000).await, 
-           "Client 1 should be connected");
+    assert!(
+        count1 > 0 || client1.wait_for_connection(5000).await,
+        "Client 1 should be connected"
+    );
 
     // Create second client
     println!("\n[Client 2] Creating connection to relay...");
@@ -52,8 +54,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_millis(2000)).await;
     let count2 = client2.connected_peer_count().await;
     println!("[Client 2] Connected peers: {}", count2);
-    assert!(count2 > 0 || client2.wait_for_connection(5000).await,
-           "Client 2 should be connected");
+    assert!(
+        count2 > 0 || client2.wait_for_connection(5000).await,
+        "Client 2 should be connected"
+    );
 
     // Generate unique test key
     let timestamp = std::time::SystemTime::now()
@@ -74,7 +78,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(obj) = data.as_object() {
                 let source = obj.get("source").and_then(|v| v.as_str());
                 let message = obj.get("message").and_then(|v| v.as_str());
-                println!("[Client 2] Received data: source={:?}, message={:?}", source, message);
+                println!(
+                    "[Client 2] Received data: source={:?}, message={:?}",
+                    source, message
+                );
                 if source == Some("client1") {
                     let mut flag = received_clone.lock().unwrap();
                     *flag = true;
@@ -104,7 +111,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..10 {
         sleep(Duration::from_millis(500)).await;
         if *received.lock().unwrap() {
-            println!("\n✓ Success! Client 2 received data from Client 1 after {} attempts", i + 1);
+            println!(
+                "\n✓ Success! Client 2 received data from Client 1 after {} attempts",
+                i + 1
+            );
             break;
         }
         if i == 9 {
@@ -125,7 +135,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Some(obj) = data.as_object() {
                 let source = obj.get("source").and_then(|v| v.as_str());
                 let message = obj.get("message").and_then(|v| v.as_str());
-                println!("[Client 1] Received data: source={:?}, message={:?}", source, message);
+                println!(
+                    "[Client 1] Received data: source={:?}, message={:?}",
+                    source, message
+                );
                 if source == Some("client2") {
                     let mut flag = received2_clone.lock().unwrap();
                     *flag = true;
@@ -154,7 +167,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..10 {
         sleep(Duration::from_millis(500)).await;
         if *received2.lock().unwrap() {
-            println!("\n✓ Success! Client 1 received data from Client 2 after {} attempts", i + 1);
+            println!(
+                "\n✓ Success! Client 1 received data from Client 2 after {} attempts",
+                i + 1
+            );
             break;
         }
         if i == 9 {
@@ -205,12 +221,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if final_count >= 5 {
         println!("✓ Success! All messages were received");
     } else {
-        println!("⚠ Warning: Expected at least 5 messages, got {}", final_count);
+        println!(
+            "⚠ Warning: Expected at least 5 messages, got {}",
+            final_count
+        );
     }
 
     println!("\n=== Test Complete ===");
-    println!("Client 1 connected peers: {}", client1.connected_peer_count().await);
-    println!("Client 2 connected peers: {}", client2.connected_peer_count().await);
+    println!(
+        "Client 1 connected peers: {}",
+        client1.connected_peer_count().await
+    );
+    println!(
+        "Client 2 connected peers: {}",
+        client2.connected_peer_count().await
+    );
 
     // Keep connections alive for a moment
     println!("\nKeeping connections alive for 2 seconds...");
@@ -218,4 +243,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
