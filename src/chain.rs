@@ -326,7 +326,7 @@ impl Chain {
                             node.data.insert(k.clone(), v.clone());
                             crate::state::State::ify(
                                 &mut node,
-                                Some(&k),
+                                Some(k),
                                 Some(state),
                                 Some(v.clone()),
                                 Some(&new_soul),
@@ -392,7 +392,7 @@ impl Chain {
     pub fn back(&self, amount: Option<usize>) -> Option<Arc<Chain>> {
         match amount {
             Some(0) | None => self.parent.clone(),
-            Some(n) if n == 1 => self.parent.clone(),
+            Some(1) => self.parent.clone(),
             Some(n) => {
                 // Go back n levels
                 let mut current = self.parent.clone();
