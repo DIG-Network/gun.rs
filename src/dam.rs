@@ -85,8 +85,8 @@ pub struct MeshOptions {
 impl Default for MeshOptions {
     fn default() -> Self {
         Self {
-            max_message_size: (300_000_000 as f64 * 0.3) as usize,
-            pack_size: ((300_000_000 as f64 * 0.3 * 0.01 * 0.01) as usize),
+            max_message_size: (300_000_000.0 * 0.3) as usize,
+            pack_size: ((300_000_000.0 * 0.3 * 0.01 * 0.01) as usize),
             gap: 0,
             retry: 60,
             lack: 9000,
