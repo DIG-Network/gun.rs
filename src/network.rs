@@ -15,6 +15,7 @@ pub struct Peer {
 
 pub struct MeshNetwork {
     peers: HashMap<String, Peer>,
+    #[allow(dead_code)] // Used for sending messages internally
     tx: Option<mpsc::UnboundedSender<NetworkMessage>>,
 }
 
@@ -71,6 +72,7 @@ impl Default for MeshNetwork {
 
 /// WebSocket server implementation
 pub struct WebSocketServer {
+    #[allow(dead_code)] // Stored for potential future use
     port: u16,
 }
 

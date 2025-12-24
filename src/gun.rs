@@ -12,6 +12,7 @@ use tokio::task::JoinHandle;
 pub struct Gun {
     core: Arc<GunCore>,
     mesh: Option<Arc<Mesh>>,
+    #[allow(dead_code)] // Server handle stored for potential cleanup
     ws_server: Option<JoinHandle<()>>,
 }
 
@@ -111,11 +112,13 @@ impl Gun {
     }
 
     /// Get the core (internal use)
+    #[allow(dead_code)] // Used internally by other modules
     pub(crate) fn core(&self) -> &Arc<GunCore> {
         &self.core
     }
 
     /// Get the mesh (internal use)
+    #[allow(dead_code)] // Used internally by other modules
     pub(crate) fn mesh(&self) -> Option<&Arc<Mesh>> {
         self.mesh.as_ref()
     }

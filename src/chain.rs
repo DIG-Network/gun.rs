@@ -94,9 +94,9 @@ impl Chain {
                 if let Value::Object(map) = data {
                     return self.put_object(map).await;
                 }
-                return Err(crate::error::GunError::InvalidData(format!(
-                    "Invalid data type"
-                )));
+                return Err(crate::error::GunError::InvalidData(
+                    "Invalid data type".to_string(),
+                ));
             }
         }
 

@@ -283,6 +283,7 @@ impl Mesh {
 
     /// Send raw message to a specific peer (by Peer reference)
     /// Routes through WebSocket connection if available, otherwise queues
+    #[allow(dead_code)] // Used internally for peer communication
     async fn send_to_peer(&self, raw: &str, peer: &Peer) -> GunResult<()> {
         self.send_to_peer_by_id(raw, &peer.id).await
     }
