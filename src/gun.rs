@@ -12,8 +12,7 @@ use tokio::task::JoinHandle;
 pub struct Gun {
     core: Arc<GunCore>,
     mesh: Option<Arc<Mesh>>,
-    #[allow(dead_code)] // Server handle stored for potential cleanup
-    ws_server: Option<JoinHandle<()>>,
+    ws_server: Option<JoinHandle<()>>, // Server handle for graceful shutdown
 }
 
 impl Gun {
@@ -112,13 +111,15 @@ impl Gun {
     }
 
     /// Get the core (internal use)
-    #[allow(dead_code)] // Used internally by other modules
+    /// Kept for potential future internal module access
+    #[allow(dead_code)]
     pub(crate) fn core(&self) -> &Arc<GunCore> {
         &self.core
     }
 
     /// Get the mesh (internal use)
-    #[allow(dead_code)] // Used internally by other modules
+    /// Kept for potential future internal module access
+    #[allow(dead_code)]
     pub(crate) fn mesh(&self) -> Option<&Arc<Mesh>> {
         self.mesh.as_ref()
     }
@@ -150,6 +151,25 @@ impl Gun {
             false
         }
     }
+
+    /// Gracefully shutdown the Gun instance
+    /// Closes the WebSocket server and cleans up resources
+    pub async fn shutdown(&mut self) -> GunResult<()> {
+        // Abort the WebSocket server task if running
+        if let Some(handle) = self.ws_server.take() {
+            handle.abort();
+            // Wait a bit for the task to finish cleanup
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+
+        // Optionally: close all peer connections via mesh
+        if let Some(ref mesh) = self.mesh {
+            // The mesh will clean up peer connections when dropped
+            // For explicit cleanup, we could add a mesh.shutdown() method if needed
+        }
+
+        Ok(())
+    }
 }
 
 impl Default for Gun {
@@ -175,6 +195,7 @@ pub struct GunOptions {
     pub radisk: bool,
 
     /// Enable localStorage (browser equivalent - not applicable in Rust, kept for API compatibility)
+    #[allow(non_snake_case)] // Matches Gun.js API naming convention
     pub localStorage: bool,
 
     /// Super peer mode (relay server mode)

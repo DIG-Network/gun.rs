@@ -6,7 +6,6 @@ pub mod error;
 pub mod events;
 pub mod graph;
 pub mod gun;
-pub mod network;
 pub mod sea;
 pub mod state;
 pub mod storage;
