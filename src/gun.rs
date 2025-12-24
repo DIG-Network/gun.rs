@@ -162,11 +162,8 @@ impl Gun {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
 
-        // Optionally: close all peer connections via mesh
-        if let Some(ref mesh) = self.mesh {
-            // The mesh will clean up peer connections when dropped
-            // For explicit cleanup, we could add a mesh.shutdown() method if needed
-        }
+        // Mesh connections will be cleaned up automatically when dropped
+        // For explicit cleanup, we could add a mesh.shutdown() method if needed
 
         Ok(())
     }
