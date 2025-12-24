@@ -72,8 +72,8 @@ pub async fn encrypt(
         .map_err(|e| SeaError::Encryption(format!("Encryption failed: {}", e)))?;
 
     // Encode everything as base64
-    let ct_b64 = general_purpose::STANDARD_NO_PAD.encode(&ciphertext);
-    let iv_b64 = general_purpose::STANDARD_NO_PAD.encode(&iv_bytes);
+    let ct_b64 = general_purpose::STANDARD_NO_PAD.encode(ciphertext);
+    let iv_b64 = general_purpose::STANDARD_NO_PAD.encode(iv_bytes);
     let s_b64 = general_purpose::STANDARD_NO_PAD.encode(&salt_bytes);
 
     // Return in Gun.js format
