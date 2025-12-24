@@ -2,6 +2,16 @@
 
 A Rust port of [Gun.js](https://github.com/amark/gun) - a realtime, decentralized, offline-first, graph data synchronization engine.
 
+## ⚠️ Important Disclaimer
+
+**This is an unofficial, vibe-coded port of Gun.js to Rust. This project is:**
+- **NOT for production use** - Do not use in production environments
+- **NOT actively maintained** - This is an experimental port
+- **For testing purposes only** - Use at your own risk
+- **No guarantees** - No warranties, no support, use at your own risk
+
+This port was created for experimentation and learning purposes. If you need a production-ready solution, please use the official [Gun.js](https://github.com/amark/gun) implementation.
+
 ## Features
 
 - **Graph Database**: Store data as a graph with nodes and relationships
@@ -62,7 +72,7 @@ See [RELAY_SERVERS.md](RELAY_SERVERS.md) for more details.
 
 ## Status
 
-This is a work-in-progress port of Gun.js to Rust. The core API is being implemented to match the JavaScript version as closely as possible.
+This is an **unofficial, experimental, vibe-coded port** of Gun.js to Rust. The core API is being implemented to match the JavaScript version as closely as possible, but this project is **not actively maintained** and should **not be used in production**. Use at your own risk, for testing purposes only.
 
 ### Networking
 
