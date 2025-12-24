@@ -1,0 +1,61 @@
+[package]
+name = "gun-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Gun.rs Contributors"]
+description = "A realtime, decentralized, offline-first, graph data synchronization engine (Rust port)"
+license = "MIT OR Apache-2.0 OR Zlib"
+repository = "https://github.com/amark/gun"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+futures-util = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Network - WebSocket for DAM (Directed Acyclic Mesh) protocol (matches Gun.js)
+tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
+url = "2.5"
+
+# Note: NOT using libp2p - Gun.js uses custom DAM protocol over WebSocket
+# libp2p would break 1:1 compatibility with Gun.js mesh protocol
+
+# Crypto (for SEA)
+sha2 = "0.10"
+sha1 = "0.10"
+aes-gcm = "0.10"
+rand = "0.8"
+hex = "0.4"
+base64 = "0.21"
+p256 = { version = "0.13", features = ["ecdsa", "ecdh", "sha256"] }
+pbkdf2 = "0.12"
+
+# Storage
+sled = "0.34"
+parking_lot = "0.12"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4"] }
+chrono = "0.4"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+urlencoding = "2.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[lib]
+name = "gun"
+path = "src/lib.rs"
+
+
+[[bin]]
+name = "gun-server"
+path = "src/bin/server.rs"
+

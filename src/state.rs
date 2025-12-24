@@ -1,0 +1,132 @@
+use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+/// State module - manages timestamps for conflict resolution
+/// Based on Gun.js state.js
+
+const DRIFT: f64 = 0.0;
+const D: f64 = 999.0;
+
+#[derive(Clone)]
+pub struct State {
+    n: Arc<Mutex<f64>>,
+    last: Arc<Mutex<f64>>,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self {
+            n: Arc::new(Mutex::new(0.0)),
+            last: Arc::new(Mutex::new(f64::NEG_INFINITY)),
+        }
+    }
+
+    /// Generate a new state timestamp
+    /// Returns a timestamp that increases with each call
+    pub fn next(&self) -> f64 {
+        let t = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as f64;
+
+        let mut n = self.n.lock().unwrap();
+        let mut last = self.last.lock().unwrap();
+
+        if *last < t {
+            *n = 0.0;
+            *last = t + DRIFT;
+            return *last;
+        }
+
+        *last = t + (*n / D) + DRIFT;
+        *n += 1.0;
+        *last
+    }
+
+    /// Get state for a key on a node
+    pub fn is(node: &Option<Node>, key: &str) -> Option<f64> {
+        if let Some(node) = node {
+            if let Some(Value::Object(states)) = node.meta.get(">") {
+                if let Some(state) = states.get(key) {
+                    if let Some(state_num) = state.as_f64() {
+                        return Some(state_num);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Put a key's state on a node
+    pub fn ify(
+        node: &mut Node,
+        key: Option<&str>,
+        state: Option<f64>,
+        value: Option<serde_json::Value>,
+        soul: Option<&str>,
+    ) -> Node {
+        if let Some(soul) = soul {
+            node.meta.insert("#".to_string(), serde_json::Value::String(soul.to_string()));
+        }
+
+        if let Some(key) = key {
+            if key != "_" {
+                let states = node.meta.entry(">".to_string())
+                    .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
+
+                if let Some(state_num) = state {
+                    if let serde_json::Value::Object(ref mut map) = states {
+                        map.insert(key.to_string(), serde_json::Value::Number(
+                            serde_json::Number::from_f64(state_num).unwrap()
+                        ));
+                    }
+                }
+
+                if let Some(val) = value {
+                    node.data.insert(key.to_string(), val);
+                }
+            }
+        }
+
+        node.clone()
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Node {
+    pub data: serde_json::Map<String, serde_json::Value>,
+    pub meta: serde_json::Map<String, serde_json::Value>,
+}
+
+impl Node {
+    pub fn new() -> Self {
+        Self {
+            data: serde_json::Map::new(),
+            meta: serde_json::Map::new(),
+        }
+    }
+
+    pub fn with_soul(soul: String) -> Self {
+        let mut meta = serde_json::Map::new();
+        meta.insert("#".to_string(), serde_json::Value::String(soul));
+        Self {
+            data: serde_json::Map::new(),
+            meta,
+        }
+    }
+
+    pub fn get_soul(&self) -> Option<String> {
+        self.meta.get("#")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    }
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
