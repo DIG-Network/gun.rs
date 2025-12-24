@@ -24,7 +24,7 @@ impl GunCore {
             events: Arc::new(EventEmitter::new()),
             storage: None,
             id_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-            dup: Arc::new(tokio::sync::RwLock::new(Dup::default())),
+            dup: Arc::new(tokio::sync::RwLock::new(Dup::new_default())),
         }
     }
 
@@ -35,7 +35,7 @@ impl GunCore {
             events: Arc::new(EventEmitter::new()),
             storage: Some(storage),
             id_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-            dup: Arc::new(tokio::sync::RwLock::new(Dup::default())),
+            dup: Arc::new(tokio::sync::RwLock::new(Dup::new_default())),
         }
     }
 

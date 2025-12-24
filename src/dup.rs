@@ -28,7 +28,7 @@ impl Dup {
 
     /// Default constructor matching Gun.js defaults
     /// max: 999, age: 9000ms
-    pub fn default() -> Self {
+    pub fn new_default() -> Self {
         Self::new(999, 9000)
     }
 
@@ -132,6 +132,6 @@ impl Dup {
 
 impl Default for Dup {
     fn default() -> Self {
-        Self::default()
+        Self::new_default()
     }
 }

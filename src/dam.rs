@@ -98,7 +98,7 @@ impl Mesh {
     pub fn new(core: Arc<GunCore>) -> Self {
         let pid = core.random_id(9);
         Self {
-            dup: Arc::new(RwLock::new(Dup::default())),
+            dup: Arc::new(RwLock::new(Dup::new_default())),
             peers: Arc::new(RwLock::new(HashMap::new())),
             core,
             near: Arc::new(RwLock::new(0)),
