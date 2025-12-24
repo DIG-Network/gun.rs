@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 /// Message deduplication module - matches Gun.js dup.js
 /// Tracks message IDs to prevent duplicate processing in DAM mesh

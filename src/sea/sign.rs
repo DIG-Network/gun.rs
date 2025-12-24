@@ -7,7 +7,6 @@ use base64::{engine::general_purpose, Engine as _};
 use p256::ecdsa::Signature;
 use p256::ecdsa::{signature::Signer, SigningKey};
 use serde_json::Value;
-use sha2::Sha256;
 
 /// Sign data with a key pair
 /// Returns signed data in format: {m: message, s: signature}
@@ -35,6 +34,7 @@ pub async fn sign(data: &Value, key_pair: &KeyPair) -> Result<Value, SeaError> {
     // Sign the message (ECDSA with SHA-256)
     let signature: Signature = signing_key.sign(message.as_bytes());
     let sig_bytes = signature.to_bytes();
+    #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     let sig_b64 = general_purpose::STANDARD_NO_PAD.encode(sig_bytes.as_slice());
 
     // Return in Gun.js format: {m: message, s: signature}

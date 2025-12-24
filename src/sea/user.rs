@@ -3,10 +3,10 @@
 //! User creation, authentication, and password management
 
 use super::pair;
-use super::{KeyPair, SeaError, UserAuth};
+use super::{SeaError, UserAuth};
 use base64::{engine::general_purpose, Engine as _};
 use pbkdf2::pbkdf2_hmac;
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 
 /// Create a new user with key pair
 /// Generates a key pair and optional alias
@@ -20,7 +20,7 @@ pub async fn create_user(alias: Option<String>) -> Result<UserAuth, SeaError> {
 /// storing encrypted keys and password hashes in the graph
 ///
 /// For now, we'll implement a basic password hash verification
-pub async fn authenticate(alias: &str, password: &str) -> Result<UserAuth, SeaError> {
+pub async fn authenticate(_alias: &str, _password: &str) -> Result<UserAuth, SeaError> {
     // TODO: Full implementation would:
     // 1. Look up user in graph by alias
     // 2. Verify password hash

@@ -2,7 +2,6 @@ use crate::error::GunResult;
 use serde_json::Value;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use url::Url;
 
 /// Network module - handles P2P mesh networking
 /// Based on Gun.js mesh.js and websocket.js
@@ -50,14 +49,14 @@ impl MeshNetwork {
     }
 
     /// Send a message to a peer
-    pub async fn send(&self, peer_id: &str, message: NetworkMessage) -> GunResult<()> {
+    pub async fn send(&self, _peer_id: &str, _message: NetworkMessage) -> GunResult<()> {
         // Implementation would send over WebSocket
         Ok(())
     }
 
     /// Broadcast a message to all peers
-    pub async fn broadcast(&self, message: NetworkMessage) -> GunResult<()> {
-        for peer in self.peers.values() {
+    pub async fn broadcast(&self, _message: NetworkMessage) -> GunResult<()> {
+        for _peer in self.peers.values() {
             // Send to each peer
         }
         Ok(())

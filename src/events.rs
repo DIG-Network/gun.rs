@@ -4,7 +4,6 @@ use std::sync::{Arc, RwLock};
 
 /// Event system - handles events and hooks
 /// Based on Gun.js onto.js and event system
-
 pub type EventCallback = Box<dyn Fn(&Event) + Send + Sync>;
 
 #[derive(Clone, Debug)]

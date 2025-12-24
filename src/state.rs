@@ -5,7 +5,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// State module - manages timestamps for conflict resolution
 /// Based on Gun.js state.js
-
 const DRIFT: f64 = 0.0;
 const D: f64 = 999.0;
 

@@ -69,7 +69,7 @@ impl Graph {
         state_fn: impl Fn() -> f64,
     ) -> GunResult<Node> {
         let mut merged = existing.clone();
-        let current_state = state_fn();
+        let _current_state = state_fn();
 
         // Get states from both nodes
         let existing_states = existing

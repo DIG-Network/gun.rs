@@ -20,6 +20,7 @@ pub async fn generate_pair() -> Result<KeyPair, SeaError> {
 
     // Export signing keys
     let priv_bytes = signing_key.to_bytes();
+    #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     let priv_key = general_purpose::STANDARD_NO_PAD.encode(priv_bytes.as_slice());
 
     // Get uncompressed public key point
@@ -67,6 +68,7 @@ pub async fn generate_pair() -> Result<KeyPair, SeaError> {
 
     // Export ECDH private key (32 bytes for P-256)
     let epriv_bytes = ecdh_secret.to_bytes();
+    #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     let epriv_key = Some(general_purpose::STANDARD_NO_PAD.encode(epriv_bytes.as_slice()));
 
     Ok(KeyPair {

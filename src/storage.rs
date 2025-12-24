@@ -2,7 +2,6 @@ use crate::error::{GunError, GunResult};
 use crate::state::Node;
 use async_trait::async_trait;
 use parking_lot::RwLock;
-use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{Read, Write};

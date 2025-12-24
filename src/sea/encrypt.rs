@@ -63,6 +63,7 @@ pub async fn encrypt(
         .map_err(|e| SeaError::Encryption(format!("Failed to create cipher: {}", e)))?;
 
     // Create nonce from IV
+    #[allow(deprecated)] // generic_array::from_slice is deprecated but aes-gcm still uses it
     let nonce = Nonce::from_slice(&iv_bytes);
 
     // Encrypt

@@ -5,7 +5,7 @@ use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::mpsc;
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
@@ -81,7 +81,7 @@ impl WebSocketClient {
         Ok(url.to_string())
     }
 
-    async fn connect_once(url: &str, core: Arc<GunCore>, mesh: Arc<Mesh>) -> GunResult<()> {
+    async fn connect_once(url: &str, _core: Arc<GunCore>, mesh: Arc<Mesh>) -> GunResult<()> {
         // Convert http/https to ws/wss
         let ws_url = url
             .replace("http://", "ws://")
@@ -189,7 +189,7 @@ impl WebSocketServer {
     async fn handle_connection(
         stream: TcpStream,
         addr: std::net::SocketAddr,
-        core: Arc<GunCore>,
+        _core: Arc<GunCore>,
         mesh: Arc<Mesh>,
     ) {
         let ws_stream = match accept_async(stream).await {

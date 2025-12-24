@@ -4,7 +4,7 @@
 
 use super::SeaError;
 use base64::{engine::general_purpose, Engine as _};
-use p256::{ecdh::SharedSecret, PublicKey, SecretKey};
+use p256::{PublicKey, SecretKey};
 
 /// Derive shared secret from ECDH key exchange
 /// Takes a public key (epub) and a key pair with epriv/epub
@@ -18,7 +18,7 @@ pub async fn derive_secret(
     let their_pub = parse_epub(their_epub)?;
 
     // Parse our keys
-    let our_pub = parse_epub(our_epub)?;
+    let _our_pub = parse_epub(our_epub)?;
     let our_priv_bytes = general_purpose::STANDARD_NO_PAD
         .decode(our_epriv)
         .map_err(|_| SeaError::InvalidKey)?;
@@ -41,6 +41,7 @@ pub async fn derive_secret(
     let shared_point = shared_secret.raw_secret_bytes();
 
     // Return as base64 (matching Gun.js format)
+    #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     Ok(general_purpose::STANDARD_NO_PAD.encode(&shared_point.as_slice()))
 }
 

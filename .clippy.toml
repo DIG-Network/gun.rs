@@ -1,28 +1,11 @@
 # Clippy configuration for gun.rs
 
-# Deny warnings in CI, but allow in development
-deny = [
-    "clippy::all",
-    "clippy::pedantic",
-    "clippy::nursery",
-    "clippy::cargo",
-]
-
-# Allow some pedantic lints that are too strict
-allow = [
-    "clippy::module_name_repetitions",  # False positives with `Gun` types
-    "clippy::multiple_crate_versions",  # Some transitive deps have different versions
-    "clippy::missing_errors_doc",       # Not all errors need documentation
-    "clippy::missing_panics_doc",       # Not all panics need documentation
-    "clippy::must_use_candidate",       # Too many false positives
-    "clippy::cast_precision_loss",      # Intentional in some cases
-    "clippy::cast_possible_truncation", # Intentional in some cases
-]
-
 # Configuration
 [clippy]
 avoid-breaking-exported-api = false  # Internal crate, okay to break
 cognitive-complexity-threshold = 30  # Reasonable complexity threshold
 too-many-arguments-threshold = 8     # Some functions legitimately need many args
 type-complexity-threshold = 300      # Allow complex types
+warn-on-all-notes = true
+disallowed-methods = ["unwrap", "expect"]
 

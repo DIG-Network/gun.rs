@@ -1,4 +1,5 @@
-use gun::{Chain, Gun};
+use gun::Gun;
+use std::sync::Arc;
 use serde_json::json;
 use tokio;
 
@@ -70,9 +71,10 @@ async fn test_event_subscription() {
     let gun = Gun::new();
     let chain = gun.get("counter");
 
-    let mut count = 0;
-    chain.on(|_data, _key| {
-        count += 1;
+    let count = Arc::new(std::sync::Mutex::new(0));
+    let count_clone = count.clone();
+    chain.on(move |_data, _key| {
+        *count_clone.lock().unwrap() += 1;
     });
 
     // Put multiple times
@@ -84,5 +86,5 @@ async fn test_event_subscription() {
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     // Events should have been triggered
-    assert!(count >= 1);
+    assert!(*count.lock().unwrap() >= 1);
 }
