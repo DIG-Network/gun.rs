@@ -3,6 +3,7 @@ use crate::core::GunCore;
 use crate::dam::Mesh;
 use crate::error::GunResult;
 use crate::storage::{LocalStorage, SledStorage, Storage};
+use crate::webrtc::{WebRTCOptions, WebRTCManager};
 use crate::websocket::{WebSocketClient, WebSocketServer};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -13,6 +14,7 @@ pub struct Gun {
     core: Arc<GunCore>,
     mesh: Option<Arc<Mesh>>,
     ws_server: Option<JoinHandle<()>>, // Server handle for graceful shutdown
+    webrtc_manager: Option<Arc<WebRTCManager>>, // WebRTC manager for direct P2P connections
 }
 
 impl Gun {
@@ -23,6 +25,7 @@ impl Gun {
             core: Arc::new(GunCore::new()),
             mesh: None,
             ws_server: None,
+            webrtc_manager: None,
         }
     }
 
@@ -85,10 +88,27 @@ impl Gun {
             }
         }
 
+        // Initialize WebRTC manager if enabled and set it in the mesh
+        let webrtc_manager = if options.webrtc.enabled {
+            if let Some(ref mesh_ref) = mesh {
+                let manager = Arc::new(WebRTCManager::new(
+                    core.clone(),
+                    mesh_ref.clone(),
+                    options.webrtc.clone(),
+                ));
+                Some(manager)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         Ok(Self {
             core,
             mesh,
             ws_server,
+            webrtc_manager,
         })
     }
 
@@ -201,6 +221,9 @@ pub struct GunOptions {
 
     /// Port to listen on (for relay server mode)
     pub port: Option<u16>,
+
+    /// WebRTC configuration for direct peer-to-peer connections
+    pub webrtc: WebRTCOptions,
 }
 
 impl Default for GunOptions {
@@ -212,6 +235,7 @@ impl Default for GunOptions {
             localStorage: true,
             super_peer: false,
             port: None,
+            webrtc: WebRTCOptions::default(),
         }
     }
 }

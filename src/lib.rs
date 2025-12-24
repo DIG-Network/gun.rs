@@ -10,12 +10,14 @@ pub mod sea;
 pub mod state;
 pub mod storage;
 pub mod valid;
+pub mod webrtc;
 pub mod websocket;
 
 pub use chain::Chain;
 pub use error::GunError;
 pub use gun::{Gun, GunOptions};
 pub use valid::valid;
+pub use webrtc::{WebRTCOptions, WebRTCManager, WebRTCPeer};
 
 #[cfg(test)]
 mod tests {

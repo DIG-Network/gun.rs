@@ -108,21 +108,23 @@ impl Mesh {
     }
 
     /// Handle incoming message (matches mesh.hear)
-    pub async fn hear(&self, raw: &str, peer: &Peer) -> GunResult<()> {
+    pub async fn hear(&self, raw: &str, peer: Option<&Peer>) -> GunResult<()> {
         if raw.is_empty() {
             return Ok(());
         }
 
         // Check message size
         if raw.len() > self.opt.max_message_size {
-            self.say(
-                &serde_json::json!({
-                    "dam": "!",
-                    "err": "Message too big!"
-                }),
-                Some(peer),
-            )
-            .await?;
+            if let Some(p) = peer {
+                self.say(
+                    &serde_json::json!({
+                        "dam": "!",
+                        "err": "Message too big!"
+                    }),
+                    Some(p),
+                )
+                .await?;
+            }
             return Ok(());
         }
 
@@ -142,7 +144,7 @@ impl Mesh {
     }
 
     /// Handle a single message (matches mesh.hear.one)
-    async fn hear_one(&self, msg: &Value, peer: &Peer) -> GunResult<()> {
+    async fn hear_one(&self, msg: &Value, peer: Option<&Peer>) -> GunResult<()> {
         let msg_id = msg
             .get("#")
             .and_then(|v| v.as_str())
@@ -163,13 +165,22 @@ impl Mesh {
             match dam_type {
                 "!" => {
                     // Error message
-                    if let Some(err) = msg.get("err").and_then(|v| v.as_str()) {
-                        eprintln!("DAM Error from peer {}: {}", peer.id, err);
+                    if let Some(p) = peer {
+                        if let Some(err) = msg.get("err").and_then(|v| v.as_str()) {
+                            eprintln!("DAM Error from peer {}: {}", p.id, err);
+                        }
                     }
                 }
                 "?" => {
                     // Peer ID exchange
-                    self.handle_peer_id_exchange(msg, peer).await?;
+                    if let Some(p) = peer {
+                        self.handle_peer_id_exchange(msg, p).await?;
+                    }
+                }
+                "rtc" => {
+                    // WebRTC signaling message - these are handled at the Gun level
+                    // to avoid circular dependencies between Mesh and WebRTCManager
+                    tracing::debug!("Received RTC signaling message via DAM protocol");
                 }
                 _ => {
                     // Other DAM message types
@@ -243,7 +254,7 @@ impl Mesh {
 
     /// Send raw message to a specific peer by ID
     /// Routes through WebSocket connection if available, otherwise queues
-    async fn send_to_peer_by_id(&self, raw: &str, peer_id: &str) -> GunResult<()> {
+    pub(crate) async fn send_to_peer_by_id(&self, raw: &str, peer_id: &str) -> GunResult<()> {
         // Try to get the sender without holding the lock for long
         let tx_opt = {
             let peers = self.peers.read().await;
@@ -386,5 +397,11 @@ impl Mesh {
             sleep(Duration::from_millis(100)).await;
         }
         false
+    }
+
+    /// Get a peer by ID
+    pub async fn get_peer(&self, peer_id: &str) -> Option<Peer> {
+        let peers = self.peers.read().await;
+        peers.get(peer_id).cloned()
     }
 }

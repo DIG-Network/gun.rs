@@ -25,6 +25,9 @@ pub enum GunError {
 
     #[error("URL parse error: {0}")]
     UrlParseError(#[from] url::ParseError),
+
+    #[error("WebRTC error: {0}")]
+    WebRTC(String),
 }
 
 pub type GunResult<T> = Result<T, GunError>;

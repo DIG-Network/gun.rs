@@ -128,7 +128,7 @@ impl WebSocketClient {
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(text)) => {
-                        if let Err(e) = mesh_clone.hear(&text, &peer_for_read).await {
+                        if let Err(e) = mesh_clone.hear(&text, Some(&peer_for_read)).await {
                             eprintln!("Error handling message from {}: {}", peer_for_read.id, e);
                         }
                     }
@@ -227,7 +227,7 @@ impl WebSocketServer {
             while let Some(msg) = read.next().await {
                 match msg {
                     Ok(Message::Text(text)) => {
-                        if let Err(e) = mesh_clone.hear(&text, &peer_for_read).await {
+                        if let Err(e) = mesh_clone.hear(&text, Some(&peer_for_read)).await {
                             eprintln!("Error handling message: {}", e);
                         }
                     }

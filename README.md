@@ -44,7 +44,19 @@ gun.get("user").on(|data, key| {
 });
 ```
 
-See the `examples/` directory for more examples matching the JavaScript version.
+See the `examples/` directory for more examples:
+
+- **`two_clients.rs`** - Two clients connecting via WebSocket relay
+- **`two_clients_webrtc.rs`** - Two clients connecting via WebRTC for direct P2P communication
+
+Run examples with:
+```bash
+# WebSocket relay example
+cargo run --example two_clients
+
+# WebRTC P2P example (demonstrates NAT traversal)
+cargo run --example two_clients_webrtc
+```
 
 ## Relay Servers (Optional)
 
