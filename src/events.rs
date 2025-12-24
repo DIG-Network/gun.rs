@@ -34,9 +34,7 @@ impl EventEmitter {
     /// Returns the listener ID for later removal
     pub fn on(&self, event_type: &str, callback: EventCallback) -> u64 {
         let mut listeners = self.listeners.write().unwrap();
-        let callbacks = listeners
-            .entry(event_type.to_string())
-            .or_insert_with(Vec::new);
+        let callbacks = listeners.entry(event_type.to_string()).or_default();
 
         let id = {
             let mut counter = self.id_counter.lock();
