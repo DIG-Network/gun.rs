@@ -1,6 +1,6 @@
 use gun::Gun;
-use std::sync::Arc;
 use serde_json::json;
+use std::sync::Arc;
 use tokio;
 
 #[tokio::test]
