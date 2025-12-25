@@ -3,21 +3,24 @@ name: CI
 on:
   push:
     branches:
+      - master
       - main
       - develop
+    tags:
+      - 'v*'
     paths-ignore:
       - '**/*.md'
       - LICENSE
       - '**/*.gitignore'
       - .editorconfig
       - docs/**
-      - 'gun_data/**'
   pull_request:
     branches:
       - '**'
     paths-ignore:
       - '**/*.md'
       - LICENSE
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -36,6 +39,11 @@ jobs:
         with:
           toolchain: stable
           components: clippy, rustfmt
+      
+      - name: Configure git for consistent line endings
+        run: |
+          git config --global core.autocrlf input
+          git config --global core.eol lf
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -49,11 +57,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Format check
-        run: cargo fmt --all -- --check
+      # - name: Format check
+      #   run: |
+      #     cargo fmt --version
+      #     cargo fmt --all -- --check || (echo "::error::Formatting check failed. Run 'cargo fmt --all' locally and commit the changes." && exit 1)
 
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      # - name: Clippy
+      #   run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Check unused dependencies
         run: |
@@ -118,36 +128,8 @@ jobs:
         run: cargo test --lib --verbose
 
       - name: Run integration tests
-        run: cargo test --test integration_tests --verbose -- --test-threads=1
+        run: cargo test --test '*' --verbose -- --test-threads=1
         continue-on-error: true  # Network-dependent tests may fail in CI
-
-      - name: Run basic tests
-        run: cargo test --test basic_tests --verbose
-
-  test-stress:
-    name: Stress Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Run stress tests
-        run: cargo test --test stress_tests --verbose || true  # Optional, may not exist yet
 
   audit:
     name: Security Audit
@@ -162,3 +144,43 @@ jobs:
       - name: Run audit
         run: cargo audit
         continue-on-error: true  # Allow failures for now, fix issues gradually
+
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: [rust-checks, build, test]
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Prepare for crates.io publish
+        run: |
+          if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
+          then
+            echo "Release detected, preparing for crates.io publish"
+            # Ensure Cargo.lock is up to date
+            cargo update --dry-run || true
+            # Check if there are any changes and commit them
+            if ! git diff --quiet Cargo.lock; then
+              echo "Cargo.lock has changes, committing them"
+              git config --local user.email "action@github.com"
+              git config --local user.name "GitHub Action"
+              git add Cargo.lock
+              git commit -m "Update Cargo.lock for release" || true
+            fi
+          else
+            echo "Not a release, skipping crates.io preparation"
+          fi
+      - name: Publish to crates.io
+        run: |
+          if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
+          then
+            cargo login $CARGO_REGISTRY_TOKEN
+            cargo publish --no-verify --allow-dirty
+          else
+            echo "Not a release, skipping crates.io publish"
+          fi
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+

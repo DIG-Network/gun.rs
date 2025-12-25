@@ -83,4 +83,3 @@ pub async fn decrypt(
 
     serde_json::from_str(&msg).map_err(|e| SeaError::Decryption(format!("Invalid JSON: {}", e)))
 }
-
