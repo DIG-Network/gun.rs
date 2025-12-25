@@ -21,7 +21,7 @@ pub fn valid(value: &Value) -> Result<bool, Option<String>> {
             // Numbers are valid if not Infinity and not NaN
             // v === v checks for NaN (NaN !== NaN)
             if let Some(f) = n.as_f64() {
-                if f.is_finite() && f == f {
+                if f.is_finite() && !f.is_nan() {
                     Ok(true)
                 } else {
                     Ok(false) // Infinity or NaN

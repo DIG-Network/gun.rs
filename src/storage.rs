@@ -148,20 +148,18 @@ impl LocalStorage {
 
         // Read all files in the directory
         if let Ok(entries) = fs::read_dir(path) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let file_path = entry.path();
-                    if file_path.is_file() {
-                        if let Some(file_name) = file_path.file_name() {
-                            if let Some(soul) = file_name.to_str() {
-                                // Try to decode the filename (may be URL-encoded)
-                                let soul = urlencoding::decode(soul)
-                                    .unwrap_or(std::borrow::Cow::Borrowed(soul))
-                                    .into_owned();
+            for entry in entries.flatten() {
+                let file_path = entry.path();
+                if file_path.is_file() {
+                    if let Some(file_name) = file_path.file_name() {
+                        if let Some(soul) = file_name.to_str() {
+                            // Try to decode the filename (may be URL-encoded)
+                            let soul = urlencoding::decode(soul)
+                                .unwrap_or(std::borrow::Cow::Borrowed(soul))
+                                .into_owned();
 
-                                if let Ok(node) = Self::load_file(&file_path) {
-                                    data.insert(soul, node);
-                                }
+                            if let Ok(node) = Self::load_file(&file_path) {
+                                data.insert(soul, node);
                             }
                         }
                     }

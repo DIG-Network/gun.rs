@@ -46,26 +46,27 @@ pub struct WebRTCOptions {
 
 impl Default for WebRTCOptions {
     fn default() -> Self {
-        let mut ice_servers = Vec::new();
-
         // Default STUN servers (matching Gun.js)
-        ice_servers.push(RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_string()],
-            username: String::new(),
-            credential: String::new(),
-            credential_type: RTCIceCredentialType::Password,
-        });
+        let ice_servers = vec![
+            RTCIceServer {
+                urls: vec!["stun:stun.l.google.com:19302".to_string()],
+                username: String::new(),
+                credential: String::new(),
+                credential_type: RTCIceCredentialType::Password,
+            },
+            RTCIceServer {
+                urls: vec!["stun:stun.cloudflare.com:3478".to_string()],
+                username: String::new(),
+                credential: String::new(),
+                credential_type: RTCIceCredentialType::Password,
+            },
+        ];
 
-        ice_servers.push(RTCIceServer {
-            urls: vec!["stun:stun.cloudflare.com:3478".to_string()],
-            username: String::new(),
-            credential: String::new(),
-            credential_type: RTCIceCredentialType::Password,
-        });
-
-        let mut data_channel = RTCDataChannelInit::default();
-        data_channel.ordered = Some(false);
-        data_channel.max_retransmits = Some(2u16);
+        let data_channel = RTCDataChannelInit {
+            ordered: Some(false),
+            max_retransmits: Some(2u16),
+            ..Default::default()
+        };
 
         Self {
             ice_servers,
@@ -517,7 +518,7 @@ impl WebRTCManager {
         }
 
         // Send through mesh
-        let msg_str = serde_json::to_string(&rtc_msg).map_err(|e| GunError::Serialization(e))?;
+        let msg_str = serde_json::to_string(&rtc_msg).map_err(GunError::Serialization)?;
 
         // Find the peer in mesh and send
         // This will go through WebSocket if WebRTC isn't established yet
