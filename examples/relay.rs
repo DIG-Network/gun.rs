@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Reading data...");
     gun.get("test")
         .get("message")
-        .once(|data, key| {
+        .once(|data, _key| {
             println!("Received: {:?}", data);
         })
         .await?;

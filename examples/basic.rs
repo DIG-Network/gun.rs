@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read data - equivalent to:
     // gun.get('mark').on((data, key) => { console.log("realtime updates:", data) })
     let mark_chain = gun.get("mark");
-    mark_chain.on(|data, key| {
+    mark_chain.on(|data, _key| {
         println!("realtime updates: {:?}", data);
     });
 

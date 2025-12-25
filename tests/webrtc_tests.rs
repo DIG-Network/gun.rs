@@ -50,7 +50,7 @@ async fn test_webrtc_peer_creation() {
         result.err()
     );
 
-    let (peer, _rx) = result.unwrap();
+    let (_peer, _rx) = result.unwrap();
     assert_eq!(peer.peer_id, peer_id);
 
     // Test connection state
@@ -68,7 +68,7 @@ async fn test_webrtc_peer_create_offer() {
     let options = WebRTCOptions::default();
     let peer_id = "test_peer_offer".to_string();
 
-    let (peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
+    let (_peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
 
     let result = peer.create_offer().await;
     assert!(result.is_ok(), "Failed to create offer: {:?}", result.err());
@@ -89,7 +89,7 @@ async fn test_webrtc_peer_send_message() {
     let options = WebRTCOptions::default();
     let peer_id = "test_peer_send".to_string();
 
-    let (peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
+    let (_peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
 
     // Note: Sending will fail without a connected peer, but we can test the method exists
     let test_message = "test message";
@@ -109,7 +109,7 @@ async fn test_webrtc_peer_connection_state() {
     let options = WebRTCOptions::default();
     let peer_id = "test_peer_state".to_string();
 
-    let (peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
+    let (_peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
 
     let state = peer.connection_state().await;
     // Should be New, Connecting, or similar initial state
@@ -128,7 +128,7 @@ async fn test_webrtc_peer_close() {
     let options = WebRTCOptions::default();
     let peer_id = "test_peer_close".to_string();
 
-    let (peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
+    let (_peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
 
     let result = peer.close().await;
     assert!(result.is_ok(), "Failed to close peer: {:?}", result.err());
@@ -158,7 +158,7 @@ async fn test_webrtc_manager_handle_offer() {
 
     // Create a test peer to generate an offer
     let test_peer_id = "test_peer_for_offer";
-    let (peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
+    let (_peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
     let offer = peer.create_offer().await.unwrap();
@@ -194,7 +194,7 @@ async fn test_webrtc_manager_handle_answer() {
 
     // First create a peer connection by handling an offer
     let test_peer_id = "test_peer_for_answer";
-    let (peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
+    let (_peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
     let offer = peer.create_offer().await.unwrap();
@@ -256,7 +256,7 @@ async fn test_webrtc_manager_handle_ice_candidate() {
 
     // Create a test peer by handling an offer first
     let test_peer_id = "test_peer_ice";
-    let (peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
+    let (_peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
     let offer = peer.create_offer().await.unwrap();
@@ -475,7 +475,7 @@ async fn test_webrtc_message_forwarding() {
 
     // Create a test peer
     let test_peer_id = "test_peer_forward";
-    let (peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
+    let (_peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
 
@@ -606,7 +606,7 @@ async fn test_webrtc_connection_timeout() {
         let options = WebRTCOptions::default();
         let peer_id = "test_timeout".to_string();
 
-        let (peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
+        let (_peer, _rx) = WebRTCPeer::new(peer_id, &options).await.unwrap();
 
         // Try to get connection state - should complete quickly
         let _state = peer.connection_state().await;

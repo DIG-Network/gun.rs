@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // })
     let boss_name_chain = gun.get("mark").get("boss").get("name");
     boss_name_chain
-        .once(|data, key| {
+        .once(|data, _key| {
             println!("Mark's boss is: {:?}", data);
         })
         .await?;
