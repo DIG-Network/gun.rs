@@ -307,8 +307,10 @@ async fn test_webrtc_manager_handle_ice_candidate() {
 async fn test_webrtc_manager_handle_peer_discovery() {
     let core = Arc::new(GunCore::new());
     let mesh = Arc::new(Mesh::new(core.clone()));
-    let mut options = WebRTCOptions::default();
-    options.max_connections = 10; // Set a reasonable limit for testing
+        let options = WebRTCOptions {
+            max_connections: 10, // Set a reasonable limit for testing
+            ..Default::default()
+        };
 
     let manager = WebRTCManager::new(core, mesh, options);
 
@@ -402,8 +404,10 @@ async fn test_webrtc_manager_handle_invalid_message() {
 async fn test_webrtc_manager_connection_limit() {
     let core = Arc::new(GunCore::new());
     let mesh = Arc::new(Mesh::new(core.clone()));
-    let mut options = WebRTCOptions::default();
-    options.max_connections = 2; // Set low limit for testing
+        let options = WebRTCOptions {
+            max_connections: 2, // Set low limit for testing
+            ..Default::default()
+        };
 
     let manager = WebRTCManager::new(core, mesh, options);
 
@@ -475,7 +479,7 @@ async fn test_webrtc_message_forwarding() {
 
     // Create a test peer
     let test_peer_id = "test_peer_forward";
-    let (peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
+    let (_peer, _rx) = WebRTCPeer::new(test_peer_id.to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
 
