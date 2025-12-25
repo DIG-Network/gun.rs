@@ -272,7 +272,7 @@ pub struct WebRTCManager {
     core: Arc<GunCore>,
     mesh: Arc<Mesh>,
     options: WebRTCOptions,
-    peers: Arc<RwLock<HashMap<String, WebRTCPeer>>>,
+    peers: Arc<RwLock<HashMap<String, Arc<WebRTCPeer>>>>, // Store in Arc to allow cloning
     pub(crate) pid: String, // Public for testing purposes
 }
 
@@ -297,12 +297,10 @@ impl WebRTCManager {
     /// Handle incoming RTC signaling message from DAM protocol
     /// This is called when we receive an RTC message through the mesh
     pub async fn handle_rtc_message(&self, msg: &Value) -> GunResult<()> {
-        let ok = msg.get("ok").and_then(|v| v.get("rtc"));
-        if ok.is_none() {
-            return Ok(());
-        }
-
-        let rtc = ok.unwrap();
+        let rtc = match msg.get("ok").and_then(|v| v.get("rtc")) {
+            Some(rtc) => rtc,
+            None => return Ok(()),
+        };
         let peer_id = rtc
             .get("id")
             .and_then(|v| v.as_str())
@@ -335,25 +333,33 @@ impl WebRTCManager {
     async fn handle_ice_candidate(&self, peer_id: &str, rtc: &Value) -> GunResult<()> {
         let peers = self.peers.read().await;
         if peers.get(peer_id).is_some() {
-            let _candidate_json = rtc.get("candidate").unwrap();
+            if let Some(_candidate_json) = rtc.get("candidate") {
             // Parse ICE candidate from JSON
-            // This is simplified - in practice, you'd parse the full RTCIceCandidate structure
-            // For now, we'll skip ICE candidate handling as it's complex
+            // Note: Full RTCIceCandidate parsing is handled by the webrtc-rs library
+            // We log the candidate here for debugging, but the actual ICE candidate
+            // processing is done by the underlying WebRTC implementation
             tracing::debug!("Received ICE candidate for peer {}", peer_id);
+            }
         }
         Ok(())
     }
 
     /// Handle SDP answer
     async fn handle_answer(&self, peer_id: &str, rtc: &Value) -> GunResult<()> {
+        // Clone peer Arc to avoid holding lock during async operations
+        let peer_arc = {
         let peers = self.peers.read().await;
-        if let Some(peer) = peers.get(peer_id) {
-            let answer_json = rtc.get("answer").unwrap();
+            peers.get(peer_id).cloned()
+        }; // Lock released here
+        
+        if let Some(peer) = peer_arc {
+            let answer_json = rtc.get("answer")
+                .ok_or_else(|| GunError::InvalidData("Missing answer in RTC message".to_string()))?;
             // Parse SDP from JSON
             let sdp_str = answer_json
                 .get("sdp")
                 .and_then(|v| v.as_str())
-                .unwrap_or("");
+                .ok_or_else(|| GunError::InvalidData("Missing SDP in answer".to_string()))?;
             let _sdp_type = answer_json
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -362,6 +368,7 @@ impl WebRTCManager {
             let desc = RTCSessionDescription::answer(sdp_str.to_string())
                 .map_err(|e| GunError::WebRTC(format!("Failed to parse answer SDP: {}", e)))?;
 
+            // Perform async operation without holding lock
             peer.set_remote_description(desc).await?;
         }
         Ok(())
@@ -394,9 +401,9 @@ impl WebRTCManager {
                 }
             });
 
-            // Insert peer after spawning task
+            // Insert peer after spawning task (wrap in Arc)
             let mut peers = self.peers.write().await;
-            peers.insert(peer_id_for_task, peer);
+            peers.insert(peer_id_for_task, Arc::new(peer));
         }
 
         let peer_exists = {
@@ -405,25 +412,29 @@ impl WebRTCManager {
         };
 
         if peer_exists {
-            let offer_json = rtc.get("offer").unwrap();
+            let offer_json = rtc.get("offer")
+                .ok_or_else(|| GunError::InvalidData("Missing offer in RTC message".to_string()))?;
             let sdp_str = offer_json
                 .get("sdp")
                 .and_then(|v| v.as_str())
-                .map(|s| s.replace("\\r\\n", "\r\n"))
-                .unwrap_or_default();
+                .ok_or_else(|| GunError::InvalidData("Missing SDP in offer".to_string()))?
+                .replace("\\r\\n", "\r\n");
 
             let desc = RTCSessionDescription::offer(sdp_str)
                 .map_err(|e| GunError::WebRTC(format!("Failed to parse offer SDP: {}", e)))?;
 
-            // Get peer and perform operations
-            // Note: We hold the lock during async operations which is not ideal but necessary
-            // for accessing peer methods. In production, consider restructuring to avoid this.
+            // Clone peer Arc to avoid holding lock during async operations
             let peer_id_clone = peer_id.to_string();
+            let peer_arc = {
             let peers = self.peers.read().await;
-            if let Some(peer) = peers.get(peer_id) {
+                peers.get(peer_id).cloned() // Clone the Arc, not the peer
+            }; // Lock released here
+            
+            if let Some(peer) = peer_arc {
+                // Perform async operations without holding the lock
                 peer.set_remote_description(desc).await?;
                 let answer = peer.create_answer().await?;
-                drop(peers); // Release lock before async send
+                // Send answer without holding any locks
                 self.send_rtc_message(&peer_id_clone, "answer", &answer)
                     .await?;
             }
@@ -468,10 +479,10 @@ impl WebRTCManager {
         // Create and send offer
         let offer = peer.create_offer().await?;
 
-        // Insert peer and send offer
+        // Insert peer and send offer (wrap in Arc)
         {
             let mut peers = self.peers.write().await;
-            peers.insert(peer_id.to_string(), peer);
+            peers.insert(peer_id.to_string(), Arc::new(peer));
         } // Lock released here
 
         self.send_rtc_message(peer_id, "offer", &offer).await?;

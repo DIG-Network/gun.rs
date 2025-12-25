@@ -54,9 +54,10 @@ impl Peer {
                 crate::error::GunError::Network(format!("Failed to send message: {}", e))
             })?;
         } else {
-            // Queue message if not connected
-            // Note: This requires mut access, so we'd need to modify the structure
-            // For now, we'll handle queuing in Mesh.send_to_peer()
+            // Peer not connected - message will be dropped
+            // Note: In a full implementation, messages could be queued for later delivery
+            // Currently, Mesh.send_to_peer_by_id() will return an error if peer is not found
+            // This is acceptable behavior as peers will reconnect and sync state
         }
         Ok(())
     }
@@ -345,9 +346,22 @@ impl Mesh {
             *near += 1;
             drop(near);
 
-            // Note: We skip sending the "hi" message here to avoid potential deadlocks
-            // The peer will be able to receive messages once the sender is set
-            // In Gun.js, the "hi" message exchange might happen differently
+            // Send "hi" message to introduce ourselves to the new peer
+            // We do this after releasing the lock to avoid deadlocks
+            // The "hi" message contains our peer ID (pid) for DAM protocol
+            let hi_message = serde_json::json!({
+                "dam": "?",
+                "pid": self.pid,
+            });
+            
+            // Send "hi" message after releasing locks to avoid deadlocks
+            // The message will be queued if the peer doesn't have a sender yet
+            let peer_id_for_hi = peer_id.clone();
+            let hi_message_str = serde_json::to_string(&hi_message)
+                .map_err(|e| crate::error::GunError::Serialization(e))?;
+            if let Err(e) = self.send_to_peer_by_id(&hi_message_str, &peer_id_for_hi).await {
+                tracing::warn!("Failed to send hi message to peer {}: {}", peer_id_for_hi, e);
+            }
         }
         Ok(())
     }

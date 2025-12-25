@@ -25,8 +25,9 @@ pub async fn encrypt(
         .map_err(|e| SeaError::Encryption(format!("Serialization error: {}", e)))?;
 
     // Generate random salt and IV (nonce)
+    // AES-GCM requires a 12-byte (96-bit) nonce
     let mut salt_bytes = [0u8; 9];
-    let mut iv_bytes = [0u8; 15];
+    let mut iv_bytes = [0u8; 12]; // Fixed: AES-GCM requires 12 bytes, not 15
     rand::thread_rng().fill_bytes(&mut salt_bytes);
     rand::thread_rng().fill_bytes(&mut iv_bytes);
 
@@ -50,7 +51,8 @@ pub async fn encrypt(
         // Combine shared secret with salt to create AES key
         derive_aes_key(&shared_secret, &salt_bytes).await?
     } else {
-        // Use epriv directly for self-encryption (simplified)
+        // Use epriv directly for self-encryption
+        // This is the correct approach: derive AES key from the encryption private key
         let epriv = pair
             .epriv_key
             .as_ref()

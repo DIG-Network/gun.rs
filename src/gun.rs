@@ -9,6 +9,60 @@ use std::sync::Arc;
 use tokio::task::JoinHandle;
 
 /// Main Gun instance - entry point for the library
+/// 
+/// This is the primary interface for interacting with the Gun database.
+/// Based on Gun.js IGun interface, providing a realtime, decentralized, offline-first graph database.
+/// 
+/// # Features
+/// - **Realtime**: Automatic synchronization with peers
+/// - **Decentralized**: P2P mesh networking with no central server required
+/// - **Offline-first**: Works locally, syncs when connected
+/// - **Graph database**: Store data as a graph with nodes and properties
+/// 
+/// # Usage
+/// 
+/// ```rust,no_run
+/// use gun::{Gun, GunOptions};
+/// use serde_json::json;
+/// 
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// // Create a local instance
+/// let gun = Gun::new();
+/// 
+/// // Put data
+/// gun.get("user").put(json!({"name": "Alice", "age": 30})).await?;
+/// 
+/// // Read data
+/// gun.get("user").once(|data, _key| {
+///     println!("User data: {:?}", data);
+/// }).await?;
+/// 
+/// // Subscribe to updates
+/// gun.get("user").on(|data, _key| {
+///     println!("User updated: {:?}", data);
+/// });
+/// 
+/// // Connect to peers
+/// let options = GunOptions {
+///     peers: vec!["ws://relay.example.com/gun".to_string()],
+///     ..Default::default()
+/// };
+/// let gun_with_peers = Gun::with_options(options).await?;
+/// # Ok(())
+/// # }
+/// ```
+/// 
+/// # Error Handling
+/// 
+/// Most operations return `GunResult<T>` which is `Result<T, GunError>`.
+/// Errors can occur due to:
+/// - Network failures (connection issues, timeouts)
+/// - Storage errors (disk full, permission denied)
+/// - Invalid data (malformed JSON, invalid soul references)
+/// - Serialization errors
+/// 
+/// All errors implement `std::error::Error` and can be converted to strings.
+/// 
 /// Based on Gun.js IGun interface
 pub struct Gun {
     core: Arc<GunCore>,
@@ -19,7 +73,22 @@ pub struct Gun {
 }
 
 impl Gun {
-    /// Create a new Gun instance
+    /// Create a new Gun instance with default settings
+    /// 
+    /// Creates a local-only Gun instance without network connectivity or persistent storage.
+    /// Use `with_options()` to configure peers, storage, and other settings.
+    /// 
+    /// # Returns
+    /// A new `Gun` instance ready for local operations.
+    /// 
+    /// # Example
+    /// ```rust,no_run
+    /// use gun::Gun;
+    /// 
+    /// let gun = Gun::new();
+    /// // Ready to use for local operations
+    /// ```
+    /// 
     /// Based on Gun.js Gun() constructor
     pub fn new() -> Self {
         Self {
@@ -30,7 +99,45 @@ impl Gun {
         }
     }
 
-    /// Create a new Gun instance with options
+    /// Create a new Gun instance with custom options
+    /// 
+    /// Configures the Gun instance with peers, storage, WebRTC, and other settings.
+    /// 
+    /// # Arguments
+    /// * `options` - Configuration options including:
+    ///   - `peers`: List of WebSocket URLs to connect to
+    ///   - `storage_path`: Path for persistent storage
+    ///   - `localStorage`: Enable localStorage-like file storage
+    ///   - `radisk`: Use SledStorage (more efficient for large datasets)
+    ///   - `port`: Port for super peer mode (relay server)
+    ///   - `super_peer`: Enable super peer mode
+    ///   - `webrtc`: WebRTC configuration for direct P2P connections
+    /// 
+    /// # Returns
+    /// Returns `Ok(Gun)` if initialization succeeds, or `GunError` if there's an error.
+    /// 
+    /// # Errors
+    /// - `GunError::Storage`: If storage initialization fails
+    /// - `GunError::Network`: If peer connection setup fails
+    /// - `GunError::Io`: If file operations fail
+    /// 
+    /// # Example
+    /// ```rust,no_run
+    /// use gun::{Gun, GunOptions};
+    /// 
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let options = GunOptions {
+    ///     peers: vec!["ws://relay.example.com/gun".to_string()],
+    ///     storage_path: Some("./gun_data".to_string()),
+    ///     localStorage: true,
+    ///     ..Default::default()
+    /// };
+    /// 
+    /// let gun = Gun::with_options(options).await?;
+    /// // Gun instance is ready with peers and storage
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn with_options(options: GunOptions) -> GunResult<Self> {
         let core = if options.localStorage || options.storage_path.is_some() {
             let storage: Arc<dyn Storage> = if let Some(ref storage_path) = options.storage_path {

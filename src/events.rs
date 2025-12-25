@@ -32,8 +32,12 @@ impl EventEmitter {
 
     /// Register an event listener
     /// Returns the listener ID for later removal
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn on(&self, event_type: &str, callback: EventCallback) -> u64 {
-        let mut listeners = self.listeners.write().unwrap();
+        let mut listeners = self.listeners.write().expect("EventEmitter lock poisoned");
         let callbacks = listeners.entry(event_type.to_string()).or_default();
 
         let id = {
@@ -50,8 +54,12 @@ impl EventEmitter {
     }
 
     /// Remove an event listener by ID
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn off(&self, event_type: &str, id: u64) {
-        let mut listeners = self.listeners.write().unwrap();
+        let mut listeners = self.listeners.write().expect("EventEmitter lock poisoned");
         if let Some(callbacks) = listeners.get_mut(event_type) {
             callbacks.retain(|entry| entry.id != id);
             // Remove empty event types
@@ -62,14 +70,22 @@ impl EventEmitter {
     }
 
     /// Remove all listeners for an event type
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn off_all(&self, event_type: &str) {
-        let mut listeners = self.listeners.write().unwrap();
+        let mut listeners = self.listeners.write().expect("EventEmitter lock poisoned");
         listeners.remove(event_type);
     }
 
     /// Emit an event
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn emit(&self, event: &Event) {
-        let listeners = self.listeners.read().unwrap();
+        let listeners = self.listeners.read().expect("EventEmitter lock poisoned");
         if let Some(callbacks) = listeners.get(&event.event_type) {
             // Clone callbacks to avoid holding lock during execution
             let callbacks: Vec<Arc<EventCallback>> = callbacks
@@ -90,8 +106,12 @@ impl EventEmitter {
     }
 
     /// Get count of listeners for an event type
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn listener_count(&self, event_type: &str) -> usize {
-        let listeners = self.listeners.read().unwrap();
+        let listeners = self.listeners.read().expect("EventEmitter lock poisoned");
         listeners.get(event_type).map(|v| v.len()).unwrap_or(0)
     }
 }

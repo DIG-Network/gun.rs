@@ -16,7 +16,9 @@ pub mod websocket;
 pub use chain::Chain;
 pub use error::GunError;
 pub use gun::{Gun, GunOptions};
+pub use sea::*;
 pub use valid::valid;
+pub use valid::{is_valid_data, valid_soul};
 pub use webrtc::{WebRTCManager, WebRTCOptions, WebRTCPeer};
 
 #[cfg(test)]
@@ -27,10 +29,11 @@ mod tests {
     async fn test_basic_put_get() {
         let gun = Gun::new();
         let chain = gun.get("test");
+        // In tests, unwrap is acceptable for error handling
         chain
             .put(serde_json::json!({"name": "test"}))
             .await
-            .unwrap();
+            .expect("put should succeed in test");
 
         let mut called = false;
         chain
@@ -39,7 +42,7 @@ mod tests {
                 assert!(data.is_object());
             })
             .await
-            .unwrap();
+            .expect("once should succeed in test");
         assert!(called);
     }
 }

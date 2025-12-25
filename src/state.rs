@@ -30,14 +30,21 @@ impl State {
 
     /// Generate a new state timestamp
     /// Returns a timestamp that increases with each call
+    /// 
+    /// # Panics
+    /// This function will panic if the system time is before the Unix epoch,
+    /// which should never happen in practice on modern systems.
     pub fn next(&self) -> f64 {
         let t = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("System time is before Unix epoch - this should never happen")
             .as_millis() as f64;
 
-        let mut n = self.n.lock().unwrap();
-        let mut last = self.last.lock().unwrap();
+        // std::sync::Mutex::lock() returns Result, handle potential poisoning
+        // Mutex poisoning indicates a panic occurred while holding the lock,
+        // which is a serious bug but we can still recover by using expect()
+        let mut n = self.n.lock().expect("State mutex poisoned - this indicates a serious bug");
+        let mut last = self.last.lock().expect("State mutex poisoned - this indicates a serious bug");
 
         if *last < t {
             *n = 0.0;
@@ -86,12 +93,14 @@ impl State {
 
                 if let Some(state_num) = state {
                     if let serde_json::Value::Object(ref mut map) = states {
-                        map.insert(
-                            key.to_string(),
-                            serde_json::Value::Number(
-                                serde_json::Number::from_f64(state_num).unwrap(),
-                            ),
-                        );
+                    // from_f64 can fail if state_num is NaN or Infinity
+                    // In practice, state_num should always be a valid finite number
+                    if let Some(number) = serde_json::Number::from_f64(state_num) {
+                        map.insert(key.to_string(), serde_json::Value::Number(number));
+                    } else {
+                        // Log error but continue - this should never happen in practice
+                        tracing::error!("Invalid state number: {} (NaN or Infinity)", state_num);
+                    }
                     }
                 }
 

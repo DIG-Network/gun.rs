@@ -9,7 +9,7 @@ use p256::{PublicKey, SecretKey};
 /// Derive shared secret from ECDH key exchange
 /// Takes a public key (epub) and a key pair with epriv/epub
 /// Returns the derived secret key (base64 encoded)
-pub async fn derive_secret(
+pub(crate) async fn derive_secret(
     their_epub: &str,
     our_epriv: &str,
     our_epub: &str,
@@ -44,6 +44,17 @@ pub async fn derive_secret(
     #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     #[allow(deprecated)] // generic_array::as_slice is deprecated but aes-gcm still uses it
     Ok(general_purpose::STANDARD_NO_PAD.encode(shared_point.as_slice()))
+}
+
+/// Public API for secret derivation
+/// Derives shared secret from ECDH key exchange
+/// Based on Gun.js SEA.secret()
+pub async fn secret(
+    their_epub: &str,
+    our_epriv: &str,
+    our_epub: &str,
+) -> Result<String, super::SeaError> {
+    derive_secret(their_epub, our_epriv, our_epub).await
 }
 
 /// Parse an epub key (format: x.y base64) into a PublicKey

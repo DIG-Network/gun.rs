@@ -215,14 +215,17 @@ async fn test_webrtc_manager_handle_answer() {
     let _ = manager.handle_rtc_message(&offer_msg).await;
     sleep(Duration::from_millis(200)).await;
 
-    // Close the test peer as manager has its own
-    let _ = peer.close().await;
-
-    // Create answer from another peer
+    // Create answer from another peer using the original offer
     let (answer_peer, _rx2) = WebRTCPeer::new("answer_peer".to_string(), &WebRTCOptions::default())
         .await
         .unwrap();
+
+    // Set the original offer as remote description before creating answer
+    answer_peer.set_remote_description(offer).await.unwrap();
     let answer = answer_peer.create_answer().await.unwrap();
+
+    // Close the test peer as manager has its own
+    let _ = peer.close().await;
 
     // Create RTC message with answer
     let rtc_msg = json!({
@@ -307,10 +310,10 @@ async fn test_webrtc_manager_handle_ice_candidate() {
 async fn test_webrtc_manager_handle_peer_discovery() {
     let core = Arc::new(GunCore::new());
     let mesh = Arc::new(Mesh::new(core.clone()));
-        let options = WebRTCOptions {
-            max_connections: 10, // Set a reasonable limit for testing
-            ..Default::default()
-        };
+    let options = WebRTCOptions {
+        max_connections: 10, // Set a reasonable limit for testing
+        ..Default::default()
+    };
 
     let manager = WebRTCManager::new(core, mesh, options);
 
@@ -404,10 +407,10 @@ async fn test_webrtc_manager_handle_invalid_message() {
 async fn test_webrtc_manager_connection_limit() {
     let core = Arc::new(GunCore::new());
     let mesh = Arc::new(Mesh::new(core.clone()));
-        let options = WebRTCOptions {
-            max_connections: 2, // Set low limit for testing
-            ..Default::default()
-        };
+    let options = WebRTCOptions {
+        max_connections: 2, // Set low limit for testing
+        ..Default::default()
+    };
 
     let manager = WebRTCManager::new(core, mesh, options);
 

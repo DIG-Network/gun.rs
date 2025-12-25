@@ -34,8 +34,12 @@ impl Dup {
 
     /// Check if message ID was already seen (deduplication check)
     /// Returns true if duplicate, false if new
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn check(&self, id: &str) -> bool {
-        let messages = self.messages.read().unwrap();
+        let messages = self.messages.read().expect("Dup lock poisoned");
         if let Some(entry) = messages.get(id) {
             // Check if still valid (not expired)
             if entry.was.elapsed() < self.max_age {
@@ -47,8 +51,12 @@ impl Dup {
 
     /// Track a message ID (marks it as seen)
     /// Returns true if tracked
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn track(&mut self, id: &str) -> bool {
-        let mut messages = self.messages.write().unwrap();
+        let mut messages = self.messages.write().expect("Dup lock poisoned");
 
         // Check size limit
         if messages.len() >= self.max_size {
@@ -67,8 +75,12 @@ impl Dup {
     }
 
     /// Track with peer info
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn track_with_peer(&mut self, id: &str, peer_id: Option<&str>) {
-        let mut messages = self.messages.write().unwrap();
+        let mut messages = self.messages.write().expect("Dup lock poisoned");
         let entry = messages
             .entry(id.to_string())
             .or_insert_with(|| MessageEntry {
@@ -89,20 +101,32 @@ impl Dup {
     }
 
     /// Drop all expired entries
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn drop_expired_all(&self) {
-        let mut messages = self.messages.write().unwrap();
+        let mut messages = self.messages.write().expect("Dup lock poisoned");
         self.drop_expired(&mut messages);
     }
 
     /// Get peer that sent this message (for routing)
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn get_via(&self, id: &str) -> Option<String> {
-        let messages = self.messages.read().unwrap();
+        let messages = self.messages.read().expect("Dup lock poisoned");
         messages.get(id).and_then(|e| e.via.clone())
     }
 
     /// Store message data with ID
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn store(&mut self, id: &str, data: serde_json::Value) {
-        let mut messages = self.messages.write().unwrap();
+        let mut messages = self.messages.write().expect("Dup lock poisoned");
         if let Some(entry) = messages.get_mut(id) {
             entry.it = Some(data);
         } else {
@@ -118,14 +142,22 @@ impl Dup {
     }
 
     /// Get stored message data
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn get(&self, id: &str) -> Option<serde_json::Value> {
-        let messages = self.messages.read().unwrap();
+        let messages = self.messages.read().expect("Dup lock poisoned");
         messages.get(id).and_then(|e| e.it.clone())
     }
 
     /// Remove a specific ID (used for special cases like DAM self-deduplication)
+    /// 
+    /// # Panics
+    /// This function will panic if the lock is poisoned, which should never happen
+    /// in practice since we don't panic while holding the lock.
     pub fn remove(&self, id: &str) {
-        let mut messages = self.messages.write().unwrap();
+        let mut messages = self.messages.write().expect("Dup lock poisoned");
         messages.remove(id);
     }
 }

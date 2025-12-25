@@ -108,10 +108,14 @@ impl Graph {
                     .or_insert_with(|| Value::Object(serde_json::Map::new()));
 
                 if let Value::Object(ref mut map) = states {
-                    map.insert(
-                        key.clone(),
-                        Value::Number(serde_json::Number::from_f64(incoming_state).unwrap()),
-                    );
+                    // from_f64 can fail if incoming_state is NaN or Infinity
+                    // In practice, incoming_state should always be a valid finite number
+                    if let Some(number) = serde_json::Number::from_f64(incoming_state) {
+                        map.insert(key.clone(), Value::Number(number));
+                    } else {
+                        // Log error but continue - this should never happen in practice
+                        tracing::error!("Invalid incoming state number: {} (NaN or Infinity)", incoming_state);
+                    }
                 }
             }
         }
