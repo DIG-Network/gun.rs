@@ -556,11 +556,15 @@ async fn test_webrtc_concurrent_peer_creation() {
 async fn test_webrtc_custom_data_channel_config() {
     use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 
-    let mut options = WebRTCOptions::default();
-    let mut data_channel = RTCDataChannelInit::default();
-    data_channel.ordered = Some(true);
-    data_channel.max_retransmits = Some(5);
-    options.data_channel = data_channel;
+    let data_channel = RTCDataChannelInit {
+        ordered: Some(true),
+        max_retransmits: Some(5),
+        ..Default::default()
+    };
+    let options = WebRTCOptions {
+        data_channel,
+        ..Default::default()
+    };
 
     let peer_id = "test_custom_config".to_string();
     let result = WebRTCPeer::new(peer_id, &options).await;
