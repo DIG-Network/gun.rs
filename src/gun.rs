@@ -199,6 +199,7 @@ impl Default for Gun {
 /// Gun options (configuration)
 /// Matches Gun.js opt.peers structure
 #[derive(Clone, Debug)]
+#[allow(non_snake_case)] // localStorage matches Gun.js API
 pub struct GunOptions {
     /// Peer URLs (relay servers or other peers)
     /// Can be WebSocket URLs like: "ws://example.com/gun" or "wss://example.com/gun"
