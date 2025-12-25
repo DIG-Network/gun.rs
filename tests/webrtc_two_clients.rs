@@ -24,9 +24,11 @@ async fn test_webrtc_two_clients() {
         println!("and demonstrates direct peer-to-peer data exchange.\n");
 
         // Create WebRTC options with STUN servers for NAT traversal
-        let mut webrtc_options = WebRTCOptions::default();
-        webrtc_options.enabled = true;
-        webrtc_options.max_connections = 10;
+        let webrtc_options = WebRTCOptions {
+            enabled: true,
+            max_connections: 10,
+            ..Default::default()
+        };
 
         // Create first client with WebRTC enabled
         println!("[Client 1] Creating connection with WebRTC enabled...");

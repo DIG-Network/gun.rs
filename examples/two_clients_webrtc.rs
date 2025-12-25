@@ -30,9 +30,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     const RELAY_URL: &str = "http://dig-relay-prod.eba-2cmanxbe.us-east-1.elasticbeanstalk.com/gun";
 
     // Create WebRTC options with STUN servers for NAT traversal
-    let mut webrtc_options = WebRTCOptions::default();
-    webrtc_options.enabled = true;
-    webrtc_options.max_connections = 10;
+    let webrtc_options = WebRTCOptions {
+        enabled: true,
+        max_connections: 10,
+        ..Default::default()
+    };
 
     println!("WebRTC Configuration:");
     println!("  - Enabled: {}", webrtc_options.enabled);
