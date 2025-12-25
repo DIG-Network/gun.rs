@@ -61,7 +61,7 @@ pub async fn decrypt(
             .epriv_key
             .as_ref()
             .ok_or_else(|| SeaError::Decryption("Missing epriv key".to_string()))?;
-        crate::sea::encrypt::derive_aes_key(epriv, salt_bytes).await?
+        crate::sea::encrypt::derive_aes_key(epriv, &salt_bytes).await?
     };
 
     // Create AES-GCM cipher
@@ -83,3 +83,4 @@ pub async fn decrypt(
 
     serde_json::from_str(&msg).map_err(|e| SeaError::Decryption(format!("Invalid JSON: {}", e)))
 }
+
