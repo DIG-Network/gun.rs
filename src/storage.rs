@@ -126,10 +126,10 @@ impl LocalStorage {
 
         // Create directory if it doesn't exist
         fs::create_dir_all(&path).map_err(|e| {
-            GunError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to create storage directory: {}", e),
-            ))
+            GunError::Io(std::io::Error::other(format!(
+                "Failed to create storage directory: {}",
+                e
+            )))
         })?;
 
         // Load existing data into cache

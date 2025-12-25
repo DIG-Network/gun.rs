@@ -130,7 +130,8 @@ async fn test_stress_lock_contention() {
 
                 // Concurrent reads (should not deadlock)
                 let count = gun_clone.connected_peer_count().await;
-                assert!(count >= 0, "connected_peer_count should not deadlock");
+                // Just verify the call doesn't deadlock (count is usize, always >= 0)
+                let _ = count;
 
                 // Concurrent checks
                 let _is_connected = gun_clone.is_connected().await;

@@ -14,6 +14,12 @@ pub struct State {
     last: Arc<Mutex<f64>>,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl State {
     pub fn new() -> Self {
         Self {
