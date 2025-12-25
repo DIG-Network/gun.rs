@@ -14,6 +14,7 @@ pub struct Gun {
     core: Arc<GunCore>,
     mesh: Option<Arc<Mesh>>,
     ws_server: Option<JoinHandle<()>>, // Server handle for graceful shutdown
+    #[allow(dead_code)] // Used internally for WebRTC signaling
     webrtc_manager: Option<Arc<WebRTCManager>>, // WebRTC manager for direct P2P connections
 }
 
