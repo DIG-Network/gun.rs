@@ -1,7 +1,6 @@
 use gun::Gun;
 use serde_json::json;
 use std::sync::Arc;
-use tokio;
 
 /// Graph example with circular references - matching JavaScript version
 #[tokio::main]

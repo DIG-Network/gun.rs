@@ -1,7 +1,6 @@
 use gun::Gun;
 use serde_json::json;
 use std::sync::Arc;
-use tokio;
 
 /// Basic example matching the JavaScript Gun.js quickstart
 #[tokio::main]

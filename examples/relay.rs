@@ -1,7 +1,6 @@
 use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
-use tokio;
 
 /// Example using a custom relay server
 /// Shows that relays are optional - just helpful peers for connectivity

@@ -1,7 +1,6 @@
 use gun::Gun;
 use serde_json::json;
 use std::sync::Arc;
-use tokio;
 
 #[tokio::test]
 async fn test_basic_put_get() {
