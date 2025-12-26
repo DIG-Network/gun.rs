@@ -9,14 +9,16 @@ pub mod gun;
 pub mod sea;
 pub mod state;
 pub mod storage;
+pub mod types;
 pub mod valid;
 pub mod webrtc;
 pub mod websocket;
 
 pub use chain::Chain;
 pub use error::GunError;
-pub use gun::{Gun, GunOptions, MessagePredicate};
+pub use gun::{Gun, GunOptions};
 pub use sea::*;
+pub use types::MessagePredicate;
 pub use valid::valid;
 pub use valid::{is_valid_data, valid_soul};
 pub use webrtc::{WebRTCManager, WebRTCOptions, WebRTCPeer};

@@ -3,6 +3,7 @@ use crate::core::GunCore;
 use crate::dam::Mesh;
 use crate::error::GunResult;
 use crate::storage::{LocalStorage, SledStorage, Storage};
+use crate::types::MessagePredicate;
 use crate::webrtc::{WebRTCManager, WebRTCOptions};
 use crate::websocket::{WebSocketClient, WebSocketServer};
 use chia_bls::{PublicKey, SecretKey};
@@ -420,10 +421,6 @@ impl Gun {
 
 // Note: Default implementation removed because Gun now requires BLS key pair
 // Users must explicitly provide secret_key and public_key
-
-/// Message predicate function type
-/// Receives the entire message object and returns true to accept, false to reject
-pub type MessagePredicate = Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>;
 
 /// Gun options (configuration)
 /// Matches Gun.js opt.peers structure

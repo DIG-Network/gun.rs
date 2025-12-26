@@ -1,6 +1,7 @@
 use crate::core::GunCore;
 use crate::dup::Dup;
 use crate::error::GunResult;
+use crate::types::MessagePredicate;
 use chia_bls::{PublicKey, SecretKey, Signature, sign, verify};
 use serde_json::Value;
 use sha2::{Sha256, Digest};
@@ -77,7 +78,7 @@ pub struct Mesh {
     secret_key: SecretKey,        // BLS secret key for signing outgoing messages
     public_key: PublicKey,        // BLS public key (our own, for reference)
     peer_public_keys: Arc<RwLock<HashMap<String, PublicKey>>>, // Map peer_id -> public_key for verification
-    message_predicate: Option<Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>>, // Optional predicate for custom message filtering
+    message_predicate: Option<MessagePredicate>, // Optional predicate for custom message filtering
 }
 
 #[derive(Clone, Debug)]
@@ -102,7 +103,7 @@ impl Default for MeshOptions {
 }
 
 impl Mesh {
-    pub fn new(core: Arc<GunCore>, secret_key: SecretKey, public_key: PublicKey, message_predicate: Option<Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>>) -> Self {
+    pub fn new(core: Arc<GunCore>, secret_key: SecretKey, public_key: PublicKey, message_predicate: Option<MessagePredicate>) -> Self {
         let pid = core.random_id(9);
         Self {
             dup: Arc::new(RwLock::new(Dup::new_default())),
