@@ -101,6 +101,7 @@ async fn main() {
             enabled: true,
             ..Default::default()
         },
+        ..Default::default()
     };
     // Generate BLS key pair
     let secret_key4 = SecretKey::from_seed(&[4 u8; 32]);

@@ -115,6 +115,7 @@ async fn main() {
                 enabled: true,
                 ..Default::default()
             },
+            ..Default::default()
         };
         match timeout(Duration::from_secs(5), Gun::with_options(secret_key4, public_key4, options)).await {
             Ok(Ok(_)) => {
