@@ -3,13 +3,17 @@
 /// Tests complete user flow: create, authenticate, recall.
 
 use gun::{Gun, sea::{create_user, authenticate, recall}};
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
     println!("Test: SEA user flow - Complete user flow");
     println!("Description: Complete user flow: create, authenticate, recall");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.root();
     let mut success_count = 0;
     let mut fail_count = 0;

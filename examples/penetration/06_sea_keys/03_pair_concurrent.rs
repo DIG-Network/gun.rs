@@ -3,6 +3,7 @@
 /// Tests concurrent key pair generation.
 
 use gun::sea::pair;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

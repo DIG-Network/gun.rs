@@ -5,6 +5,7 @@
 use gun::{Gun, GunOptions};
 use std::path::Path;
 use tempfile::TempDir;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -21,7 +22,10 @@ async fn main() {
         storage_path: None,
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    match Gun::with_options(secret_key1, public_key1, options).await {
         Ok(_) => {
             println!("✓ MemoryStorage: Success");
             success_count += 1;
@@ -40,7 +44,10 @@ async fn main() {
         storage_path: Some(temp_dir.path().to_str().unwrap().to_string()),
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key2 = SecretKey::from_seed(&[2 u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    match Gun::with_options(secret_key2, public_key2, options).await {
         Ok(_) => {
             println!("✓ SledStorage: Success");
             success_count += 1;
@@ -60,7 +67,10 @@ async fn main() {
         radisk: false,
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key3 = SecretKey::from_seed(&[3 u8; 32]);
+    let public_key3 = secret_key3.public_key();
+    match Gun::with_options(secret_key3, public_key3, options).await {
         Ok(_) => {
             println!("✓ LocalStorage: Success");
             success_count += 1;

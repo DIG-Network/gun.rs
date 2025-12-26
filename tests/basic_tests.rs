@@ -1,10 +1,13 @@
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 use std::sync::Arc;
 
 #[tokio::test]
 async fn test_basic_put_get() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.get("test");
 
     // Put data
@@ -32,7 +35,9 @@ async fn test_basic_put_get() {
 
 #[tokio::test]
 async fn test_chain_get() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[1u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.get("user").get("name");
 
     chain.put(json!("Alice")).await.unwrap();
@@ -51,7 +56,9 @@ async fn test_chain_get() {
 
 #[tokio::test]
 async fn test_chain_back() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[2u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let root = gun.root();
     let user = root.get("user");
     let name = user.get("name");
@@ -67,7 +74,9 @@ async fn test_chain_back() {
 
 #[tokio::test]
 async fn test_event_subscription() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[3u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.get("counter");
 
     let count = Arc::new(std::sync::Mutex::new(0));

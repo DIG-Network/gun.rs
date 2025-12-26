@@ -3,6 +3,7 @@
 /// Tests putting data with <? suffix for expiration (if supported).
 
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 
 #[tokio::main]
@@ -10,7 +11,10 @@ async fn main() {
     println!("Test: Chain.put() with time-based expiration");
     println!("Description: Test <? suffix for expiration");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let mut success_count = 0;
     let mut fail_count = 0;
     

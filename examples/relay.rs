@@ -1,4 +1,5 @@
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -8,18 +9,34 @@ use std::sync::Arc;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Connecting to relay server...");
 
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+
     // Option 1: Use your relay server
     let relay_url = "ws://dig-relay-prod.eba-2cmanxbe.us-east-1.elasticbeanstalk.com/gun";
-    let gun = Arc::new(Gun::with_options(GunOptions::with_relay(relay_url)).await?);
+    let options = GunOptions {
+        peers: vec![relay_url.to_string()],
+        ..Default::default()
+    };
+    let gun = Arc::new(Gun::with_options(secret_key, public_key, options).await?);
 
     // Option 2: Use multiple relays for redundancy
-    // let gun = Arc::new(Gun::with_options(GunOptions::with_peers(vec![
-    //     "ws://dig-relay-prod.eba-2cmanxbe.us-east-1.elasticbeanstalk.com/gun".to_string(),
-    //     "ws://backup-relay.com/gun".to_string(),
-    // ])));
+    // let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    // let public_key = secret_key.public_key();
+    // let options = GunOptions {
+    //     peers: vec![
+    //         "ws://dig-relay-prod.eba-2cmanxbe.us-east-1.elasticbeanstalk.com/gun".to_string(),
+    //         "ws://backup-relay.com/gun".to_string(),
+    //     ],
+    //     ..Default::default()
+    // };
+    // let gun = Arc::new(Gun::with_options(secret_key, public_key, options).await?);
 
     // Option 3: Run fully P2P without any relay
-    // let gun = Arc::new(Gun::new());
+    // let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    // let public_key = secret_key.public_key();
+    // let gun = Arc::new(Gun::new(secret_key, public_key));
 
     // Test: Save some data
     println!("Saving data...");

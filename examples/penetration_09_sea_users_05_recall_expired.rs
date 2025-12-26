@@ -3,13 +3,17 @@
 /// Tests recalling expired user sessions.
 
 use gun::{Gun, sea::{create_user, recall}};
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
     println!("Test: SEA.recall() - Recall expired session");
     println!("Description: Recall expired user sessions");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.root();
     let mut success_count = 0;
     let mut fail_count = 0;

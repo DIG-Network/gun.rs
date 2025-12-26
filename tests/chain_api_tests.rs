@@ -2,12 +2,15 @@
 //! Tests all chain methods: get, put, on, once, map, set, back, off
 
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 use std::sync::Arc;
 
 #[tokio::test]
 async fn test_chain_get_navigation() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
 
     // Navigate through chain
     let chain = gun.get("user").get("profile").get("name");
@@ -32,7 +35,9 @@ async fn test_chain_get_navigation() {
 
 #[tokio::test]
 async fn test_chain_put_simple_value() {
-    let gun = Gun::new();
+    let secret_key = SecretKey::from_seed(&[1u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let chain = gun.get("counter");
 
     chain.put(json!(42)).await.unwrap();

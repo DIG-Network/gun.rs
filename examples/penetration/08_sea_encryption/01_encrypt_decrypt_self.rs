@@ -17,6 +17,7 @@ async fn main() {
         Ok(keypair) => {
             // Self-encryption: use None for their_epub
             let data = json!({"secret": "self-encrypted data"});
+use chia_bls::{SecretKey, PublicKey};
             match encrypt(&data, &keypair, None).await {
                 Ok(encrypted) => {
                     match decrypt(&encrypted, &keypair, None).await {

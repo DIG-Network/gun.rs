@@ -3,6 +3,7 @@
 /// Tests signing strings, numbers, objects, and arrays.
 
 use gun::sea::{pair, sign, verify};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

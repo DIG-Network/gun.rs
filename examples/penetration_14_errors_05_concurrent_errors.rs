@@ -3,6 +3,7 @@
 /// Tests error handling under concurrent operations.
 
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -11,7 +12,10 @@ async fn main() {
     println!("Test: Error handling under concurrency");
     println!("Description: Test error handling under concurrent operations");
     
-    let gun = Arc::new(Gun::new());
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Arc::new(Gun::new(secret_key, public_key));
     let mut success_count = 0;
     let mut fail_count = 0;
     

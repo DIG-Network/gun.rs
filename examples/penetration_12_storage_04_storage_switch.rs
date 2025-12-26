@@ -3,6 +3,7 @@
 /// Tests switching between different storage backends.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use tempfile::TempDir;
 
 #[tokio::main]
@@ -17,25 +18,29 @@ async fn main() {
     println!("\n--- Test: Switch storage backends ---");
     
     // MemoryStorage
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
     let options1 = GunOptions {
         localStorage: false,
         storage_path: None,
         ..Default::default()
     };
-    if Gun::with_options(options1).await.is_ok() {
+    if Gun::with_options(secret_key1, public_key1, options1).await.is_ok() {
         success_count += 1;
     } else {
         fail_count += 1;
     }
     
     // SledStorage
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let options2 = GunOptions {
         radisk: true,
         storage_path: Some(temp_dir.path().to_str().unwrap().to_string()),
         ..Default::default()
     };
-    if Gun::with_options(options2).await.is_ok() {
+    if Gun::with_options(secret_key2, public_key2, options2).await.is_ok() {
         success_count += 1;
     } else {
         fail_count += 1;

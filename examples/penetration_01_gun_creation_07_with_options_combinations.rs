@@ -3,6 +3,7 @@
 /// Tests creating Gun instances with different combinations of options.
 
 use gun::{Gun, GunOptions, WebRTCOptions};
+use chia_bls::{SecretKey, PublicKey};
 use tempfile::TempDir;
 use tokio::time::{Duration, timeout};
 
@@ -18,6 +19,8 @@ async fn main() {
     
         // Test 1: Storage + peers (with timeout)
         println!("\n--- Test 1: Storage + peers ---");
+        let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+        let public_key1 = secret_key1.public_key();
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let options = GunOptions {
             peers: vec!["ws://localhost:8765/gun".to_string()],
@@ -25,7 +28,7 @@ async fn main() {
             localStorage: true,
             ..Default::default()
         };
-        match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        match timeout(Duration::from_secs(5), Gun::with_options(secret_key1, public_key1, options)).await {
             Ok(Ok(_)) => {
                 println!("✓ Storage + peers: Success");
                 success_count += 1;
@@ -42,6 +45,8 @@ async fn main() {
         
         // Test 2: Storage + WebRTC
         println!("\n--- Test 2: Storage + WebRTC ---");
+        let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+        let public_key2 = secret_key2.public_key();
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let options = GunOptions {
             storage_path: Some(temp_dir.path().to_str().unwrap().to_string()),
@@ -52,7 +57,7 @@ async fn main() {
             },
             ..Default::default()
         };
-        match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        match timeout(Duration::from_secs(5), Gun::with_options(secret_key2, public_key2, options)).await {
             Ok(Ok(_)) => {
                 println!("✓ Storage + WebRTC: Success");
                 success_count += 1;
@@ -69,6 +74,8 @@ async fn main() {
         
         // Test 3: Peers + WebRTC
         println!("\n--- Test 3: Peers + WebRTC ---");
+        let secret_key3 = SecretKey::from_seed(&[3u8; 32]);
+        let public_key3 = secret_key3.public_key();
         let options = GunOptions {
             peers: vec!["ws://localhost:8765/gun".to_string()],
             webrtc: WebRTCOptions {
@@ -77,7 +84,7 @@ async fn main() {
             },
             ..Default::default()
         };
-        match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        match timeout(Duration::from_secs(5), Gun::with_options(secret_key3, public_key3, options)).await {
             Ok(Ok(_)) => {
                 println!("✓ Peers + WebRTC: Success");
                 success_count += 1;
@@ -94,6 +101,8 @@ async fn main() {
         
         // Test 4: All options combined
         println!("\n--- Test 4: All options combined ---");
+        let secret_key4 = SecretKey::from_seed(&[4u8; 32]);
+        let public_key4 = secret_key4.public_key();
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let options = GunOptions {
             peers: vec!["ws://localhost:8765/gun".to_string()],
@@ -107,7 +116,7 @@ async fn main() {
                 ..Default::default()
             },
         };
-        match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        match timeout(Duration::from_secs(5), Gun::with_options(secret_key4, public_key4, options)).await {
             Ok(Ok(_)) => {
                 println!("✓ All options: Success");
                 success_count += 1;

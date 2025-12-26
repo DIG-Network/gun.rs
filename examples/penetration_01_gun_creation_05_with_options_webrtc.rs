@@ -3,6 +3,7 @@
 /// Tests creating Gun instances with WebRTC enabled/disabled.
 
 use gun::{Gun, GunOptions, WebRTCOptions};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -14,6 +15,8 @@ async fn main() {
     
     // Test 1: WebRTC disabled (default)
     println!("\n--- Test 1: WebRTC disabled ---");
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
     let options = GunOptions {
         webrtc: WebRTCOptions {
             enabled: false,
@@ -21,7 +24,7 @@ async fn main() {
         },
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key1, public_key1, options).await {
         Ok(_) => {
             println!("✓ WebRTC disabled: Success");
             success_count += 1;
@@ -34,6 +37,8 @@ async fn main() {
     
     // Test 2: WebRTC enabled
     println!("\n--- Test 2: WebRTC enabled ---");
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
     let options = GunOptions {
         webrtc: WebRTCOptions {
             enabled: true,
@@ -41,7 +46,7 @@ async fn main() {
         },
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key2, public_key2, options).await {
         Ok(_) => {
             println!("✓ WebRTC enabled: Success");
             success_count += 1;

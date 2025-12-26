@@ -4,6 +4,7 @@
 /// Should behave similarly to Gun::new().
 
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -12,7 +13,10 @@ async fn main() {
     
     let options = GunOptions::default();
     
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    match Gun::with_options(secret_key1, public_key1, options).await {
         Ok(gun) => {
             println!("✓ Success: Gun instance created with empty options");
             println!("  - Instance type: Gun");

@@ -1,12 +1,16 @@
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 
 /// Basic example matching the JavaScript Gun.js quickstart
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     // Create a Gun instance
-    let gun = Arc::new(Gun::new());
+    let gun = Arc::new(Gun::new(secret_key, public_key));
 
     // Save data - equivalent to:
     // gun.get('mark').put({name: "Mark", email: "mark@gun.eco"})

@@ -5,6 +5,7 @@ use crate::error::GunResult;
 use crate::storage::{LocalStorage, SledStorage, Storage};
 use crate::webrtc::{WebRTCManager, WebRTCOptions};
 use crate::websocket::{WebSocketClient, WebSocketServer};
+use chia_bls::{PublicKey, SecretKey};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 
@@ -70,6 +71,8 @@ pub struct Gun {
     ws_server: Option<JoinHandle<()>>, // Server handle for graceful shutdown
     #[allow(dead_code)] // Used internally for WebRTC signaling
     webrtc_manager: Option<Arc<WebRTCManager>>, // WebRTC manager for direct P2P connections
+    secret_key: SecretKey, // BLS secret key for signing outgoing messages
+    public_key: PublicKey, // BLS public key for verifying incoming messages
 }
 
 impl Gun {
@@ -78,24 +81,33 @@ impl Gun {
     /// Creates a local-only Gun instance without network connectivity or persistent storage.
     /// Use `with_options()` to configure peers, storage, and other settings.
     /// 
+    /// # Arguments
+    /// * `secret_key` - BLS secret key for signing outgoing messages
+    /// * `public_key` - BLS public key for verifying incoming messages (typically derived from secret_key)
+    /// 
     /// # Returns
     /// A new `Gun` instance ready for local operations.
     /// 
     /// # Example
     /// ```rust,no_run
     /// use gun::Gun;
+    /// use chia_bls::{SecretKey, PublicKey};
     /// 
-    /// let gun = Gun::new();
+    /// let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    /// let public_key = secret_key.public_key();
+    /// let gun = Gun::new(secret_key, public_key);
     /// // Ready to use for local operations
     /// ```
     /// 
     /// Based on Gun.js Gun() constructor
-    pub fn new() -> Self {
+    pub fn new(secret_key: SecretKey, public_key: PublicKey) -> Self {
         Self {
             core: Arc::new(GunCore::new()),
             mesh: None,
             ws_server: None,
             webrtc_manager: None,
+            secret_key,
+            public_key,
         }
     }
 
@@ -104,6 +116,8 @@ impl Gun {
     /// Configures the Gun instance with peers, storage, WebRTC, and other settings.
     /// 
     /// # Arguments
+    /// * `secret_key` - BLS secret key for signing outgoing messages
+    /// * `public_key` - BLS public key for verifying incoming messages (typically derived from secret_key)
     /// * `options` - Configuration options including:
     ///   - `peers`: List of WebSocket URLs to connect to
     ///   - `storage_path`: Path for persistent storage
@@ -124,8 +138,11 @@ impl Gun {
     /// # Example
     /// ```rust,no_run
     /// use gun::{Gun, GunOptions};
+    /// use chia_bls::{SecretKey, PublicKey};
     /// 
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    /// let public_key = secret_key.public_key();
     /// let options = GunOptions {
     ///     peers: vec!["ws://relay.example.com/gun".to_string()],
     ///     storage_path: Some("./gun_data".to_string()),
@@ -133,12 +150,12 @@ impl Gun {
     ///     ..Default::default()
     /// };
     /// 
-    /// let gun = Gun::with_options(options).await?;
+    /// let gun = Gun::with_options(secret_key, public_key, options).await?;
     /// // Gun instance is ready with peers and storage
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn with_options(options: GunOptions) -> GunResult<Self> {
+    pub async fn with_options(secret_key: SecretKey, public_key: PublicKey, options: GunOptions) -> GunResult<Self> {
         let core = if options.localStorage || options.storage_path.is_some() {
             let storage: Arc<dyn Storage> = if let Some(ref storage_path) = options.storage_path {
                 if options.radisk {
@@ -160,7 +177,7 @@ impl Gun {
 
         // Create mesh if we have peers or are a super peer
         let mesh = if !options.peers.is_empty() || options.super_peer {
-            Some(Arc::new(Mesh::new(core.clone())))
+            Some(Arc::new(Mesh::new(core.clone(), secret_key.clone(), public_key.clone())))
         } else {
             None
         };
@@ -212,11 +229,102 @@ impl Gun {
             None
         };
 
+        // Set up event listeners for network sync
+        if let Some(ref mesh_ref) = mesh {
+            let mesh_clone = mesh_ref.clone();
+            
+            // Listen for network_sync events (emitted by emit_update) and send to peers
+            let mesh_for_sync = mesh_clone.clone();
+            let core_for_sync = core.clone();
+            core.events.on("network_sync", Box::new(move |event: &crate::events::Event| {
+                if let Some(soul) = event.data.get("soul").and_then(|v| v.as_str()) {
+                    if let Some(data) = event.data.get("data") {
+                        // Gun.js expects: { put: { soul: { _: { "#": soul, ">": states }, ...data } } }
+                        // The soul must be a KEY in the put object, not a field
+                        let core_clone = core_for_sync.clone();
+                        let mesh_send = mesh_for_sync.clone();
+                        let soul_str = soul.to_string();
+                        let data_clone = data.clone();
+                        tokio::spawn(async move {
+                            // Get the node from graph to include state information
+                            if let Some(node) = core_clone.graph.get(&soul_str) {
+                                // Build node object with metadata
+                                let mut node_obj = serde_json::Map::new();
+                                
+                                // Add metadata object "_" from node.meta
+                                // Gun.js expects: { _: { "#": soul, ">": { key1: state1, key2: state2 } } }
+                                if let Some(meta_obj) = node.meta.get("_").and_then(|v| v.as_object()) {
+                                    // Use existing meta if available
+                                    let mut meta = serde_json::Map::new();
+                                    for (k, v) in meta_obj {
+                                        meta.insert(k.clone(), v.clone());
+                                    }
+                                    // Ensure "#" is set
+                                    meta.insert("#".to_string(), serde_json::Value::String(soul_str.clone()));
+                                    node_obj.insert("_".to_string(), serde_json::Value::Object(meta));
+                                } else {
+                                    // Build meta from node.meta
+                                    let mut meta = serde_json::Map::new();
+                                    meta.insert("#".to_string(), serde_json::Value::String(soul_str.clone()));
+                                    // Add state map if available
+                                    if let Some(states) = node.meta.get(">") {
+                                        meta.insert(">".to_string(), states.clone());
+                                    }
+                                    node_obj.insert("_".to_string(), serde_json::Value::Object(meta));
+                                }
+                                
+                                // Add data fields
+                                if let Some(data_obj) = data_clone.as_object() {
+                                    for (key, value) in data_obj {
+                                        node_obj.insert(key.clone(), value.clone());
+                                    }
+                                }
+                                
+                                // Build put message: { put: { soul: node_obj } }
+                                // Gun.js expects the soul to be a KEY, not a field
+                                let mut put_obj = serde_json::Map::new();
+                                put_obj.insert(soul_str.clone(), serde_json::Value::Object(node_obj));
+                                
+                                let msg = serde_json::json!({
+                                    "put": serde_json::Value::Object(put_obj)
+                                });
+                                eprintln!("DEBUG: Sending put message to peers (Gun.js format): {}", serde_json::to_string(&msg).unwrap_or_default());
+                                
+                                if let Err(e) = mesh_send.say(&msg, None).await {
+                                    eprintln!("Error sending network_sync to peers: {}", e);
+                                }
+                            }
+                        });
+                    }
+                }
+            }));
+
+            // Listen for get_request events and send them to peers
+            let mesh_for_get = mesh_clone.clone();
+            core.events.on("get_request", Box::new(move |event: &crate::events::Event| {
+                // Forward get request to peers
+                if let Some(get_data) = event.data.get("get") {
+                    let msg = serde_json::json!({
+                        "get": get_data
+                    });
+                    let mesh_send = mesh_for_get.clone();
+                    let msg_send = msg.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = mesh_send.say(&msg_send, None).await {
+                            eprintln!("Error sending get_request to peers: {}", e);
+                        }
+                    });
+                }
+            }));
+        }
+
         Ok(Self {
             core,
             mesh,
             ws_server,
             webrtc_manager,
+            secret_key,
+            public_key,
         })
     }
 
@@ -297,11 +405,8 @@ impl Gun {
     }
 }
 
-impl Default for Gun {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Note: Default implementation removed because Gun now requires BLS key pair
+// Users must explicitly provide secret_key and public_key
 
 /// Gun options (configuration)
 /// Matches Gun.js opt.peers structure

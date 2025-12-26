@@ -37,6 +37,7 @@ hex = "0.4"
 base64 = "0.21"
 p256 = { version = "0.13", features = ["ecdsa", "ecdh", "sha256"] }
 pbkdf2 = "0.12"
+chia-bls = "0.36"
 
 # Storage
 sled = "0.34"

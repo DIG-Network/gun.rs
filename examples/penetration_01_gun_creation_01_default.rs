@@ -4,6 +4,7 @@
 /// This should always succeed and create local-only instances.
 
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -15,7 +16,9 @@ async fn main() {
     
     // Test 1: Create Client 1
     println!("\n--- Test 1: Creating Client 1 ---");
-    match Gun::with_options(GunOptions::default()).await {
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    match Gun::with_options(secret_key1, public_key1, GunOptions::default()).await {
         Ok(_client1) => {
             println!("✓ Client 1: Gun instance created");
             println!("  - Instance type: Gun");
@@ -31,7 +34,9 @@ async fn main() {
     
     // Test 2: Create Client 2
     println!("\n--- Test 2: Creating Client 2 ---");
-    match Gun::with_options(GunOptions::default()).await {
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    match Gun::with_options(secret_key2, public_key2, GunOptions::default()).await {
         Ok(_client2) => {
             println!("✓ Client 2: Gun instance created");
             println!("  - Instance type: Gun");

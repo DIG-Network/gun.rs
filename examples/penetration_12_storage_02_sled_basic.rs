@@ -3,6 +3,7 @@
 /// Tests SledStorage basic operations.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use tempfile::TempDir;
 
 #[tokio::main]
@@ -14,6 +15,9 @@ async fn main() {
     let mut fail_count = 0;
     
     println!("\n--- Test: SledStorage ---");
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let options = GunOptions {
         radisk: true,
@@ -21,7 +25,7 @@ async fn main() {
         ..Default::default()
     };
     
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key, public_key, options).await {
         Ok(_) => {
             println!("✓ SledStorage: Success");
             success_count += 1;

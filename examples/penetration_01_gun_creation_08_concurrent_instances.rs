@@ -3,7 +3,7 @@
 /// Tests creating multiple Gun instances simultaneously.
 
 use gun::Gun;
-use std::sync::Arc;
+use chia_bls::{SecretKey, PublicKey};
 use tokio::time::Duration;
 
 #[tokio::main]
@@ -15,8 +15,10 @@ async fn main() {
     
     for i in 0..10 {
         let handle = tokio::spawn(async move {
+            let secret_key = SecretKey::from_seed(&[i as u8; 32]);
+            let public_key = secret_key.public_key();
             match std::panic::catch_unwind(|| {
-                Gun::new()
+                Gun::new(secret_key, public_key)
             }) {
                 Ok(gun) => {
                     println!("✓ Instance {}: Created successfully", i);

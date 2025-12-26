@@ -3,6 +3,7 @@
 /// Tests persistence across restarts (if supported).
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use tempfile::TempDir;
 use serde_json::json;
 use std::sync::Arc;
@@ -18,6 +19,9 @@ async fn main() {
     let mut fail_count = 0;
     
     println!("\n--- Test: Persistence ---");
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let storage_path = temp_dir.path().to_str().unwrap().to_string();
     
@@ -28,7 +32,7 @@ async fn main() {
         ..Default::default()
     };
     
-    match Gun::with_options(options1).await {
+    match Gun::with_options(secret_key.clone(), public_key.clone(), options1).await {
         Ok(gun1) => {
             match gun1.get("test").get("persist").put(json!({"value": 42})).await {
                 Ok(_) => {
@@ -42,7 +46,7 @@ async fn main() {
                         ..Default::default()
                     };
                     
-                    match Gun::with_options(options2).await {
+                    match Gun::with_options(secret_key, public_key, options2).await {
                         Ok(gun2) => {
                             let received = Arc::new(AtomicBool::new(false));
                             let received_clone = received.clone();

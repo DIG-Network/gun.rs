@@ -5,6 +5,7 @@
 use gun::{Gun, GunOptions};
 use std::sync::Arc;
 use tokio::time::Duration;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -24,7 +25,10 @@ async fn main() {
                 peers: vec![RELAY_URL.to_string()],
                 ..Default::default()
             };
-            match Gun::with_options(options).await {
+            // Generate BLS key pair
+            let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+            let public_key1 = secret_key1.public_key();
+            match Gun::with_options(secret_key1, public_key1, options).await {
                 Ok(gun) => {
                     println!("✓ Instance {}: Created successfully", i);
                     tokio::time::sleep(Duration::from_millis(100)).await;

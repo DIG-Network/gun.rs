@@ -3,6 +3,7 @@
 /// Tests putting nested objects and arrays of objects.
 
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 
 #[tokio::main]
@@ -10,7 +11,10 @@ async fn main() {
     println!("Test: Chain.put() with nested structures");
     println!("Description: Test nested objects and arrays of objects");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let mut success_count = 0;
     let mut fail_count = 0;
     

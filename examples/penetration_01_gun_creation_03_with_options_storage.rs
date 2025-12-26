@@ -3,6 +3,7 @@
 /// Tests creating Gun instances with MemoryStorage, SledStorage, and LocalStorage.
 
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 use tempfile::TempDir;
 
 #[tokio::main]
@@ -15,12 +16,14 @@ async fn main() {
     
     // Test 1: MemoryStorage (no storage_path, localStorage=false)
     println!("\n--- Test 1: MemoryStorage ---");
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
     let options = GunOptions {
         localStorage: false,
         storage_path: None,
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key1, public_key1, options).await {
         Ok(_) => {
             println!("✓ MemoryStorage: Success");
             success_count += 1;
@@ -33,13 +36,15 @@ async fn main() {
     
     // Test 2: SledStorage (radisk=true, with storage_path)
     println!("\n--- Test 2: SledStorage ---");
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let options = GunOptions {
         radisk: true,
         storage_path: Some(temp_dir.path().to_str().unwrap().to_string()),
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key2, public_key2, options).await {
         Ok(_) => {
             println!("✓ SledStorage: Success");
             success_count += 1;
@@ -52,6 +57,8 @@ async fn main() {
     
     // Test 3: LocalStorage (localStorage=true, with storage_path)
     println!("\n--- Test 3: LocalStorage ---");
+    let secret_key3 = SecretKey::from_seed(&[3u8; 32]);
+    let public_key3 = secret_key3.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let options = GunOptions {
         localStorage: true,
@@ -59,7 +66,7 @@ async fn main() {
         radisk: false,
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key3, public_key3, options).await {
         Ok(_) => {
             println!("✓ LocalStorage: Success");
             success_count += 1;

@@ -3,6 +3,7 @@
 /// Tests reading data that doesn't exist in the graph.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::time::Duration;
@@ -16,11 +17,13 @@ async fn main() {
     
     // Create Client 1
     println!("\n--- Setup: Creating Client 1 ---");
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
     let options1 = GunOptions {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client1 = match Gun::with_options(options1).await {
+    let client1 = match Gun::with_options(secret_key1, public_key1, options1).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 1: {}", e);
@@ -31,11 +34,13 @@ async fn main() {
     
     // Create Client 2
     println!("--- Setup: Creating Client 2 ---");
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
     let options2 = GunOptions {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client2 = match Gun::with_options(options2).await {
+    let client2 = match Gun::with_options(secret_key2, public_key2, options2).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 2: {}", e);

@@ -50,6 +50,7 @@ async fn main() {
     
     // Test: Generate and use for encryption
     println!("\n--- Test 2: Use for encryption ---");
+use chia_bls::{SecretKey, PublicKey};
     match pair().await {
         Ok(keypair) => {
             let data = json!({"secret": "data"});

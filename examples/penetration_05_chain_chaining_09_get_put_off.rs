@@ -3,6 +3,7 @@
 /// Tests chaining get(), on(), put(), and off() methods.
 
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -13,7 +14,10 @@ async fn main() {
     println!("Test: Chain method chaining - get().on().put().off()");
     println!("Description: Test get().on().put().off() chaining");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let mut success_count = 0;
     let mut fail_count = 0;
     

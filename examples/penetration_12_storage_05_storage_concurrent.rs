@@ -3,6 +3,7 @@
 /// Tests concurrent storage operations.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use tempfile::TempDir;
 use std::sync::Arc;
 
@@ -15,6 +16,9 @@ async fn main() {
     let mut fail_count = 0;
     
     println!("\n--- Test: Concurrent storage operations ---");
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let options = GunOptions {
         radisk: true,
@@ -22,7 +26,7 @@ async fn main() {
         ..Default::default()
     };
     
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key, public_key, options).await {
         Ok(gun) => {
             let gun_arc = Arc::new(gun);
             let mut handles = vec![];

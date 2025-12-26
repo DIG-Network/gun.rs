@@ -10,6 +10,7 @@
 ///
 /// Run with: `cargo run --example two_clients`
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
@@ -25,11 +26,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create first client
     println!("[Client 1] Creating connection to relay...");
+    let secret_key1 = SecretKey::from_seed(&[1u8; 32]);
+    let public_key1 = secret_key1.public_key();
     let options1 = GunOptions {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client1 = Arc::new(Gun::with_options(options1).await?);
+    let client1 = Arc::new(Gun::with_options(secret_key1, public_key1, options1).await?);
     println!("[Client 1] Instance created");
 
     // Wait for client1 to connect
@@ -43,11 +46,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create second client
     println!("\n[Client 2] Creating connection to relay...");
+    let secret_key2 = SecretKey::from_seed(&[2u8; 32]);
+    let public_key2 = secret_key2.public_key();
     let options2 = GunOptions {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client2 = Arc::new(Gun::with_options(options2).await?);
+    let client2 = Arc::new(Gun::with_options(secret_key2, public_key2, options2).await?);
     println!("[Client 2] Instance created");
 
     // Wait for client2 to connect

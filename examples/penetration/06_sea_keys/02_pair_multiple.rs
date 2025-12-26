@@ -3,6 +3,7 @@
 /// Tests generating multiple key pairs.
 
 use gun::sea::pair;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

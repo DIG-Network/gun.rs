@@ -7,6 +7,7 @@ use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use tokio::time::Duration;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -21,7 +22,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client1 = match Gun::with_options(options1).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    let client1 = match Gun::with_options(secret_key1, public_key1, options1).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 1: {}", e);
@@ -36,7 +40,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client2 = match Gun::with_options(options2).await {
+    // Generate BLS key pair
+    let secret_key2 = SecretKey::from_seed(&[2 u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    let client2 = match Gun::with_options(secret_key2, public_key2, options2).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 2: {}", e);

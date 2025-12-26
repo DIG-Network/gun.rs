@@ -3,6 +3,7 @@
 /// Tests handling network failures and timeouts.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
@@ -13,12 +14,15 @@ async fn main() {
     let mut fail_count = 0;
     
     println!("\n--- Test: Network errors ---");
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     let options = GunOptions {
         peers: vec!["ws://nonexistent.example.com:9999/gun".to_string()],
         ..Default::default()
     };
     
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key, public_key, options).await {
         Ok(_) => {
             println!("✓ Network errors: Instance created (connection will fail gracefully)");
             success_count += 1;

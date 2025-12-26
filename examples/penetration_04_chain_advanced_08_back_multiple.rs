@@ -3,13 +3,17 @@
 /// Tests navigating back multiple levels.
 
 use gun::Gun;
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
     println!("Test: Chain.back() - Navigate back multiple levels");
     println!("Description: Navigate back multiple levels");
     
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Gun::new(secret_key, public_key);
     let mut success_count = 0;
     let mut fail_count = 0;
     

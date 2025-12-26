@@ -4,6 +4,7 @@
 
 use gun::sea::{pair, encrypt, decrypt};
 use serde_json::json;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

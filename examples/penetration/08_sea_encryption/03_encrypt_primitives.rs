@@ -3,6 +3,7 @@
 /// Tests encrypting strings, numbers, booleans, objects, and arrays.
 
 use gun::sea::{pair, encrypt, decrypt};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

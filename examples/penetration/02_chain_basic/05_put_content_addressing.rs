@@ -20,7 +20,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client1 = match Gun::with_options(options1).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    let client1 = match Gun::with_options(secret_key1, public_key1, options1).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 1: {}", e);
@@ -35,7 +38,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client2 = match Gun::with_options(options2).await {
+    // Generate BLS key pair
+    let secret_key2 = SecretKey::from_seed(&[2 u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    let client2 = match Gun::with_options(secret_key2, public_key2, options2).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 2: {}", e);
@@ -55,6 +61,7 @@ async fn main() {
     // Generate hash (simplified - in practice, this would use SEA.work)
     use sha2::{Sha256, Digest};
     use base64::{engine::general_purpose, Engine as _};
+use chia_bls::{SecretKey, PublicKey};
     let mut hasher = Sha256::new();
     hasher.update(data_string.as_bytes());
     let hash = general_purpose::STANDARD_NO_PAD.encode(hasher.finalize());

@@ -3,6 +3,7 @@
 /// Tests concurrent subscription operations.
 
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -13,7 +14,10 @@ async fn main() {
     println!("Test: Chain.on() - Concurrent subscriptions");
     println!("Description: Test concurrent subscription operations");
     
-    let gun = Arc::new(Gun::new());
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Arc::new(Gun::new(secret_key, public_key));
     let mut success_count = 0;
     let mut fail_count = 0;
     

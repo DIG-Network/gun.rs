@@ -3,6 +3,7 @@
 /// Tests MemoryStorage basic operations.
 
 use gun::{Gun, GunOptions};
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
@@ -13,13 +14,16 @@ async fn main() {
     let mut fail_count = 0;
     
     println!("\n--- Test: MemoryStorage ---");
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
     let options = GunOptions {
         localStorage: false,
         storage_path: None,
         ..Default::default()
     };
     
-    match Gun::with_options(options).await {
+    match Gun::with_options(secret_key, public_key, options).await {
         Ok(_) => {
             println!("✓ MemoryStorage: Success");
             success_count += 1;

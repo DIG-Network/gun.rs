@@ -1,4 +1,5 @@
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 use std::sync::Arc;
 use tokio::time::{sleep, timeout, Duration};
@@ -40,12 +41,14 @@ async fn wait_and_verify_connection(gun: &Arc<Gun>, test_name: &str) -> bool {
 #[tokio::test]
 async fn test_relay_put_get() {
     timeout(Duration::from_secs(30), async {
+        let secret_key = SecretKey::from_seed(&[0u8; 32]);
+        let public_key = secret_key.public_key();
         let options = GunOptions {
             peers: vec![RELAY_URL.to_string()],
             ..Default::default()
         };
 
-        let gun = Arc::new(Gun::with_options(options).await.unwrap());
+        let gun = Arc::new(Gun::with_options(secret_key, public_key, options).await.unwrap());
 
         // Verify connection to relay
         if !wait_and_verify_connection(&gun, "test_relay_put_get").await {
@@ -97,12 +100,14 @@ async fn test_relay_put_get() {
 #[tokio::test]
 async fn test_relay_realtime_updates() {
     timeout(Duration::from_secs(30), async {
+        let secret_key = SecretKey::from_seed(&[1u8; 32]);
+        let public_key = secret_key.public_key();
         let options = GunOptions {
             peers: vec![RELAY_URL.to_string()],
             ..Default::default()
         };
 
-        let gun = Arc::new(Gun::with_options(options).await.unwrap());
+        let gun = Arc::new(Gun::with_options(secret_key, public_key, options).await.unwrap());
 
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

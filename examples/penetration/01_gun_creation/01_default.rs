@@ -4,6 +4,7 @@
 /// This should always succeed and create local-only instances.
 
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {

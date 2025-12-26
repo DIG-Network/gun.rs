@@ -24,10 +24,15 @@ pub use webrtc::{WebRTCManager, WebRTCOptions, WebRTCPeer};
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chia_bls::{SecretKey, PublicKey};
 
     #[tokio::test]
     async fn test_basic_put_get() {
-        let gun = Gun::new();
+        // Generate BLS key pair for testing
+        let secret_key = SecretKey::from_seed(&[0u8; 32]);
+        let public_key = secret_key.public_key();
+        
+        let gun = Gun::new(secret_key, public_key);
         let chain = gun.get("test");
         // In tests, unwrap is acceptable for error handling
         chain

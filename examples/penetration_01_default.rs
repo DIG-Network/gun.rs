@@ -4,6 +4,7 @@
 /// This should always succeed and create a local-only instance.
 
 use gun::Gun;
+use chia_bls::SecretKey;
 
 #[tokio::main]
 async fn main() {
@@ -11,7 +12,10 @@ async fn main() {
     println!("Description: Create Gun instance with default settings");
     
     match std::panic::catch_unwind(|| {
-        let gun = Gun::new();
+        // Generate BLS key pair
+        let secret_key = SecretKey::from_seed(&[0u8; 32]);
+        let public_key = secret_key.public_key();
+        let _gun = Gun::new(secret_key, public_key);
         println!("✓ Success: Gun instance created");
         println!("  - Instance type: Gun");
         println!("  - Storage: None (in-memory only)");

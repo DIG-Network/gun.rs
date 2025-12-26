@@ -1,11 +1,15 @@
 use gun::Gun;
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 
 /// Graph example with circular references - matching JavaScript version
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let gun = Arc::new(Gun::new());
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    let gun = Arc::new(Gun::new(secret_key, public_key));
 
     // Create circular references
     // Equivalent to JavaScript:

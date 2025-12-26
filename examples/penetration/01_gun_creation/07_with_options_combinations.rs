@@ -4,6 +4,7 @@
 
 use gun::{Gun, GunOptions, WebRTCOptions};
 use tempfile::TempDir;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -22,7 +23,10 @@ async fn main() {
         localStorage: true,
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    match Gun::with_options(secret_key1, public_key1, options).await {
         Ok(_) => {
             println!("✓ Storage + peers: Success");
             success_count += 1;
@@ -45,7 +49,10 @@ async fn main() {
         },
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key2 = SecretKey::from_seed(&[2 u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    match Gun::with_options(secret_key2, public_key2, options).await {
         Ok(_) => {
             println!("✓ Storage + WebRTC: Success");
             success_count += 1;
@@ -66,7 +73,10 @@ async fn main() {
         },
         ..Default::default()
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key3 = SecretKey::from_seed(&[3 u8; 32]);
+    let public_key3 = secret_key3.public_key();
+    match Gun::with_options(secret_key3, public_key3, options).await {
         Ok(_) => {
             println!("✓ Peers + WebRTC: Success");
             success_count += 1;
@@ -92,7 +102,10 @@ async fn main() {
             ..Default::default()
         },
     };
-    match Gun::with_options(options).await {
+    // Generate BLS key pair
+    let secret_key4 = SecretKey::from_seed(&[4 u8; 32]);
+    let public_key4 = secret_key4.public_key();
+    match Gun::with_options(secret_key4, public_key4, options).await {
         Ok(_) => {
             println!("✓ All options: Success");
             success_count += 1;

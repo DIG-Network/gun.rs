@@ -6,6 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use tokio::time::Duration;
+use chia_bls::{SecretKey, PublicKey};
 
 #[tokio::main]
 async fn main() {
@@ -20,7 +21,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client1 = match Gun::with_options(options1).await {
+    // Generate BLS key pair
+    let secret_key1 = SecretKey::from_seed(&[1 u8; 32]);
+    let public_key1 = secret_key1.public_key();
+    let client1 = match Gun::with_options(secret_key1, public_key1, options1).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 1: {}", e);
@@ -35,7 +39,10 @@ async fn main() {
         peers: vec![RELAY_URL.to_string()],
         ..Default::default()
     };
-    let client2 = match Gun::with_options(options2).await {
+    // Generate BLS key pair
+    let secret_key2 = SecretKey::from_seed(&[2 u8; 32]);
+    let public_key2 = secret_key2.public_key();
+    let client2 = match Gun::with_options(secret_key2, public_key2, options2).await {
         Ok(g) => Arc::new(g),
         Err(e) => {
             println!("✗ Failed to create Client 2: {}", e);
@@ -57,7 +64,7 @@ async fn main() {
     match client1.get("test").get(&format!("empty_string_{}", timestamp)).put(json!("")).await {
         Ok(_) => {
             println!("✓ Client1: Empty string - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -72,7 +79,7 @@ async fn main() {
     match client1.get("test").get(&format!("long_string_{}", timestamp)).put(json!(long_string)).await {
         Ok(_) => {
             println!("✓ Client1: Very long string - Success");
-            tokio::time::sleep(Duration::from_millis(2000)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -87,7 +94,7 @@ async fn main() {
     match client1.get("test").get(&format!("special_{}", timestamp)).put(json!(special)).await {
         Ok(_) => {
             println!("✓ Client1: Special characters - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -102,7 +109,7 @@ async fn main() {
     match client1.get("test").get(&format!("unicode_{}", timestamp)).put(json!(unicode)).await {
         Ok(_) => {
             println!("✓ Client1: Unicode - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -117,7 +124,7 @@ async fn main() {
     match client1.get("test").get(&format!("newlines_{}", timestamp)).put(json!(with_newlines)).await {
         Ok(_) => {
             println!("✓ Client1: Newlines/tabs - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -131,7 +138,7 @@ async fn main() {
     match client1.get("test").get(&format!("empty_obj_{}", timestamp)).put(json!({})).await {
         Ok(_) => {
             println!("✓ Client1: Empty object - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
