@@ -15,7 +15,7 @@ pub mod websocket;
 
 pub use chain::Chain;
 pub use error::GunError;
-pub use gun::{Gun, GunOptions};
+pub use gun::{Gun, GunOptions, MessagePredicate};
 pub use sea::*;
 pub use valid::valid;
 pub use valid::{is_valid_data, valid_soul};

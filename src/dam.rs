@@ -77,6 +77,7 @@ pub struct Mesh {
     secret_key: SecretKey,        // BLS secret key for signing outgoing messages
     public_key: PublicKey,        // BLS public key (our own, for reference)
     peer_public_keys: Arc<RwLock<HashMap<String, PublicKey>>>, // Map peer_id -> public_key for verification
+    message_predicate: Option<Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>>, // Optional predicate for custom message filtering
 }
 
 #[derive(Clone, Debug)]
@@ -101,7 +102,7 @@ impl Default for MeshOptions {
 }
 
 impl Mesh {
-    pub fn new(core: Arc<GunCore>, secret_key: SecretKey, public_key: PublicKey) -> Self {
+    pub fn new(core: Arc<GunCore>, secret_key: SecretKey, public_key: PublicKey, message_predicate: Option<Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>>) -> Self {
         let pid = core.random_id(9);
         Self {
             dup: Arc::new(RwLock::new(Dup::new_default())),
@@ -113,6 +114,7 @@ impl Mesh {
             secret_key,
             public_key,
             peer_public_keys: Arc::new(RwLock::new(HashMap::new())),
+            message_predicate,
         }
     }
 
@@ -320,6 +322,15 @@ impl Mesh {
                 if let Err(e) = self.send_to_peer_by_id(&updated_raw, &peer_id).await {
                     eprintln!("Error re-broadcasting signed message to peer {}: {}", peer_id, e);
                 }
+            }
+        }
+
+        // Check custom message predicate (application-level filtering)
+        // This runs after signature verification but before message processing
+        if let Some(ref predicate) = self.message_predicate {
+            if !predicate(msg) {
+                eprintln!("DEBUG: Message rejected by custom predicate from peer {:?}", peer.map(|p| &p.id));
+                return Ok(()); // Reject message based on predicate
             }
         }
 

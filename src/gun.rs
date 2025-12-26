@@ -126,6 +126,10 @@ impl Gun {
     ///   - `port`: Port for super peer mode (relay server)
     ///   - `super_peer`: Enable super peer mode
     ///   - `webrtc`: WebRTC configuration for direct P2P connections
+    ///   - `message_predicate`: Optional predicate function for custom message filtering
+    ///     - Receives the entire message object (as `serde_json::Value`)
+    ///     - Returns `true` to accept the message, `false` to reject it
+    ///     - Called after signature verification but before message processing
     /// 
     /// # Returns
     /// Returns `Ok(Gun)` if initialization succeeds, or `GunError` if there's an error.
@@ -137,16 +141,25 @@ impl Gun {
     /// 
     /// # Example
     /// ```rust,no_run
-    /// use gun::{Gun, GunOptions};
+    /// use gun::{Gun, GunOptions, MessagePredicate};
     /// use chia_bls::{SecretKey, PublicKey};
+    /// use std::sync::Arc;
     /// 
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let secret_key = SecretKey::from_seed(&[0u8; 32]);
     /// let public_key = secret_key.public_key();
+    /// 
+    /// // Optional: Create a message predicate to filter incoming messages
+    /// let predicate: MessagePredicate = Arc::new(|msg| {
+    ///     // Example: Only accept messages that contain a "put" field
+    ///     msg.get("put").is_some()
+    /// });
+    /// 
     /// let options = GunOptions {
     ///     peers: vec!["ws://relay.example.com/gun".to_string()],
     ///     storage_path: Some("./gun_data".to_string()),
     ///     localStorage: true,
+    ///     message_predicate: Some(predicate),
     ///     ..Default::default()
     /// };
     /// 
@@ -177,7 +190,7 @@ impl Gun {
 
         // Create mesh if we have peers or are a super peer
         let mesh = if !options.peers.is_empty() || options.super_peer {
-            Some(Arc::new(Mesh::new(core.clone(), secret_key.clone(), public_key.clone())))
+            Some(Arc::new(Mesh::new(core.clone(), secret_key.clone(), public_key.clone(), options.message_predicate.clone())))
         } else {
             None
         };
@@ -408,9 +421,13 @@ impl Gun {
 // Note: Default implementation removed because Gun now requires BLS key pair
 // Users must explicitly provide secret_key and public_key
 
+/// Message predicate function type
+/// Receives the entire message object and returns true to accept, false to reject
+pub type MessagePredicate = Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>;
+
 /// Gun options (configuration)
 /// Matches Gun.js opt.peers structure
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 #[allow(non_snake_case)] // localStorage matches Gun.js API
 pub struct GunOptions {
     /// Peer URLs (relay servers or other peers)
@@ -438,6 +455,33 @@ pub struct GunOptions {
 
     /// WebRTC configuration for direct peer-to-peer connections
     pub webrtc: WebRTCOptions,
+
+    /// Optional predicate function to filter incoming messages
+    /// 
+    /// If provided, the predicate receives the entire message object (as `serde_json::Value`)
+    /// and returns:
+    /// - `true` to accept the message (continue processing)
+    /// - `false` to reject the message (drop silently)
+    /// 
+    /// The predicate is called after signature verification but before message processing.
+    /// This allows the application layer to implement custom message filtering logic,
+    /// such as:
+    /// - Filtering messages based on content
+    /// - Implementing rate limiting
+    /// - Enforcing access control policies
+    /// - Blocking specific message types
+    /// 
+    /// # Example
+    /// ```rust,no_run
+    /// use gun::MessagePredicate;
+    /// use std::sync::Arc;
+    /// 
+    /// // Only accept "put" messages
+    /// let predicate: MessagePredicate = Arc::new(|msg| {
+    ///     msg.get("put").is_some()
+    /// });
+    /// ```
+    pub message_predicate: Option<MessagePredicate>,
 }
 
 impl Default for GunOptions {
@@ -450,6 +494,7 @@ impl Default for GunOptions {
             super_peer: false,
             port: None,
             webrtc: WebRTCOptions::default(),
+            message_predicate: None,
         }
     }
 }
