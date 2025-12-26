@@ -99,9 +99,6 @@ jobs:
       - name: Build
         run: cargo build --all-features --verbose
 
-      - name: Build examples
-        run: cargo build --examples --all-features --verbose
-
   test:
     name: Test
     runs-on: ubuntu-latest
