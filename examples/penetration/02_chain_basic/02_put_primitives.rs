@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -62,12 +62,12 @@ async fn main() {
             tokio::time::sleep(Duration::from_millis(1500)).await;
             let received = Arc::new(AtomicBool::new(false));
             let received_clone = received.clone();
-            match client2.get("test").get(&test_key1).once(move |data, _key| {
+            match timeout(Duration::from_secs(10), client2.get("test").get(&test_key1).once(move |data, _key| {
                 if data.as_str() == Some("hello") {
                     received_clone.store(true, Ordering::Relaxed);
                 }
-            }).await {
-                Ok(_) => {
+            })).await {
+                Ok(Ok(_)) => {
                     if received.load(Ordering::Relaxed) {
                         println!("✓ Client2: String verified - Success");
                         success_count += 1;
@@ -76,8 +76,12 @@ async fn main() {
                         fail_count += 1;
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     println!("✗ String: Client2 read failed - {}", e);
+                    fail_count += 1;
+                }
+                Err(_) => {
+                    println!("✗ String: Client2 read timed out after 10 seconds");
                     fail_count += 1;
                 }
             }

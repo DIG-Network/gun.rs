@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -70,14 +70,14 @@ async fn main() {
             let received = Arc::new(AtomicBool::new(false));
             let received_clone = received.clone();
             let key_clone = test_key.clone();
-            match client2.get("app").get("users").get(&key_clone).once(move |data, _key| {
+            match timeout(Duration::from_secs(10), client2.get("app").get("users").get(&key_clone).once(move |data, _key| {
                 if let Some(obj) = data.as_object() {
                     if obj.get("name").and_then(|v| v.as_str()) == Some("Alice") {
                         received_clone.store(true, Ordering::Relaxed);
                     }
                 }
-            }).await {
-                Ok(_) => {
+            })).await {
+                Ok(Ok(_)) => {
                     if received.load(Ordering::Relaxed) {
                         println!("✓ Client2: Step 2 - Data read");
                         println!("✓ Complete workflow: Success");
@@ -87,8 +87,12 @@ async fn main() {
                         fail_count += 1;
                     }
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     println!("✗ Client2: Step 2 - Read failed - {}", e);
+                    fail_count += 1;
+                }
+                Err(_) => {
+                    println!("✗ Client2: Step 2 - Read timed out after 10 seconds");
                     fail_count += 1;
                 }
             }

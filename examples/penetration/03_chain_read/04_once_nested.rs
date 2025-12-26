@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -76,12 +76,12 @@ async fn main() {
     println!("\n--- Test 1: Client2 reading top level ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
         if data.is_object() {
             received_clone.store(true, Ordering::Relaxed);
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 println!("✓ Client2: Top level read - Success");
                 success_count += 1;
@@ -89,8 +89,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Top level read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Top level read timed out after 10 seconds");
             fail_count += 1;
         }
     }
@@ -99,12 +103,12 @@ async fn main() {
     println!("\n--- Test 2: Client2 reading nested property ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get("test").get(&test_key).get("level1").once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).get("level1").once(move |data, _key| {
         if data.is_object() {
             received_clone.store(true, Ordering::Relaxed);
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 println!("✓ Client2: Nested property read - Success");
                 success_count += 1;
@@ -112,8 +116,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Nested property read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Nested property read timed out after 10 seconds");
             fail_count += 1;
         }
     }
@@ -122,12 +130,12 @@ async fn main() {
     println!("\n--- Test 3: Client2 reading deeply nested property ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get("test").get(&test_key).get("level1").get("level2").get("level3").once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).get("level1").get("level2").get("level3").once(move |data, _key| {
         if data.as_str() == Some("deep value") {
             received_clone.store(true, Ordering::Relaxed);
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 println!("✓ Client2: Deeply nested read - Success");
                 success_count += 1;
@@ -135,8 +143,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Deeply nested read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Deeply nested read timed out after 10 seconds");
             fail_count += 1;
         }
     }

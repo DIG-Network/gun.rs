@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -68,19 +68,19 @@ async fn main() {
     // Wait for data to sync
     tokio::time::sleep(Duration::from_millis(2000)).await;
     
-    // Client 2 reads the data
+    // Client 2 reads the data (with timeout)
     println!("\n--- Test 1: Client 2 reading existing data ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
         if let Some(obj) = data.as_object() {
             if obj.get("value").and_then(|v| v.as_i64()) == Some(42) {
                 received_clone.store(true, Ordering::Relaxed);
                 println!("✓ Data received correctly by Client 2");
             }
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 success_count += 1;
             } else {
@@ -88,8 +88,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Read timed out after 10 seconds");
             fail_count += 1;
         }
     }

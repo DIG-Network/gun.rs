@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -79,15 +79,15 @@ async fn main() {
     println!("\n--- Test 1: Client2 reading through soul reference ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
         // Should get the referenced node data
         if let Some(obj) = data.as_object() {
             if obj.get("name").and_then(|v| v.as_str()) == Some("Referenced Node") {
                 received_clone.store(true, Ordering::Relaxed);
             }
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 println!("✓ Client2: Read through soul ref - Success");
                 success_count += 1;
@@ -96,8 +96,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Read through soul ref failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Read through soul ref timed out after 10 seconds");
             fail_count += 1;
         }
     }
@@ -106,14 +110,14 @@ async fn main() {
     println!("\n--- Test 2: Client2 reading directly from soul ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match client2.get(&node_soul).once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get(&node_soul).once(move |data, _key| {
         if let Some(obj) = data.as_object() {
             if obj.get("value").and_then(|v| v.as_i64()) == Some(999) {
                 received_clone.store(true, Ordering::Relaxed);
             }
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if received.load(Ordering::Relaxed) {
                 println!("✓ Client2: Direct soul read - Success");
                 success_count += 1;
@@ -121,8 +125,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Direct soul read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Direct soul read timed out after 10 seconds");
             fail_count += 1;
         }
     }

@@ -5,7 +5,7 @@
 use gun::{Gun, GunOptions};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -53,11 +53,11 @@ async fn main() {
     let mut success_count = 0;
     let mut fail_count = 0;
     
-    // Test 1: Client2 reads non-existent data (Client1 doesn't put anything)
+    // Test 1: Client2 reads non-existent data (Client1 doesn't put anything) - with timeout
     println!("\n--- Test 1: Client2 reading non-existent data ---");
     let called = Arc::new(AtomicBool::new(false));
     let called_clone = called.clone();
-    match client2.get("nonexistent").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(10), client2.get("nonexistent").get(&test_key).once(move |data, _key| {
         called_clone.store(true, Ordering::Relaxed);
         // Data should be null or not found
         if data.is_null() {
@@ -65,8 +65,8 @@ async fn main() {
         } else {
             println!("? Client2: Received data: {:?} (unexpected)", data);
         }
-    }).await {
-        Ok(_) => {
+    })).await {
+        Ok(Ok(_)) => {
             if called.load(Ordering::Relaxed) {
                 println!("✓ Client2: Callback was called");
                 success_count += 1;
@@ -75,8 +75,12 @@ async fn main() {
                 fail_count += 1;
             }
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Client2: Read failed: {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Client2: Read timed out after 10 seconds");
             fail_count += 1;
         }
     }

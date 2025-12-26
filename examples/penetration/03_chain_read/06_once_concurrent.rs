@@ -6,7 +6,7 @@ use gun::{Gun, GunOptions};
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::time::Duration;
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -77,13 +77,14 @@ async fn main() {
         let handle = tokio::spawn(async move {
             let received = Arc::new(AtomicBool::new(false));
             let received_clone = received.clone();
-            match client2_clone.get("test").get(&key).once(move |data, _key| {
+            match timeout(Duration::from_secs(10), client2_clone.get("test").get(&key).once(move |data, _key| {
                 if data.as_i64() == Some(i) {
                     received_clone.store(true, Ordering::Relaxed);
                 }
-            }).await {
-                Ok(_) => received.load(Ordering::Relaxed),
-                Err(_) => false,
+            })).await {
+                Ok(Ok(_)) => received.load(Ordering::Relaxed),
+                Ok(Err(_)) => false,
+                Err(_) => false, // timeout
             }
         });
         handles.push(handle);
