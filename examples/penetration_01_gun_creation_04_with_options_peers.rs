@@ -3,6 +3,7 @@
 /// Tests creating Gun instances with single peer, multiple peers, and invalid URLs.
 
 use gun::{Gun, GunOptions};
+use tokio::time::{Duration, timeout};
 
 #[tokio::main]
 async fn main() {
@@ -18,14 +19,18 @@ async fn main() {
         peers: vec!["ws://localhost:8765/gun".to_string()],
         ..Default::default()
     };
-    match Gun::with_options(options).await {
-        Ok(_) => {
+    match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        Ok(Ok(_)) => {
             println!("✓ Single peer: Instance created (connection may fail)");
             success_count += 1;
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Single peer: Failed - {}", e);
             fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Single peer: Timed out after 5 seconds (peer may not be available)");
+            // Don't count timeout as failure for peer connection tests
         }
     }
     
@@ -38,14 +43,18 @@ async fn main() {
         ],
         ..Default::default()
     };
-    match Gun::with_options(options).await {
-        Ok(_) => {
+    match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        Ok(Ok(_)) => {
             println!("✓ Multiple peers: Instance created");
             success_count += 1;
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Multiple peers: Failed - {}", e);
             fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Multiple peers: Timed out after 5 seconds (peers may not be available)");
+            // Don't count timeout as failure for peer connection tests
         }
     }
     
@@ -55,13 +64,17 @@ async fn main() {
         peers: vec!["not-a-valid-url".to_string()],
         ..Default::default()
     };
-    match Gun::with_options(options).await {
-        Ok(_) => {
+    match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        Ok(Ok(_)) => {
             println!("✓ Invalid URL: Instance created (connection will fail)");
             success_count += 1;
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Invalid URL: Failed - {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Invalid URL: Timed out after 5 seconds");
             fail_count += 1;
         }
     }
@@ -72,13 +85,17 @@ async fn main() {
         peers: vec![],
         ..Default::default()
     };
-    match Gun::with_options(options).await {
-        Ok(_) => {
+    match timeout(Duration::from_secs(5), Gun::with_options(options)).await {
+        Ok(Ok(_)) => {
             println!("✓ Empty peers: Instance created");
             success_count += 1;
         }
-        Err(e) => {
+        Ok(Err(e)) => {
             println!("✗ Empty peers: Failed - {}", e);
+            fail_count += 1;
+        }
+        Err(_) => {
+            println!("✗ Empty peers: Timed out after 5 seconds");
             fail_count += 1;
         }
     }

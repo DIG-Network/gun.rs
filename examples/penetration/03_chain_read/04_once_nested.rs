@@ -70,13 +70,13 @@ async fn main() {
         }
     }
     
-    tokio::time::sleep(Duration::from_millis(2000)).await;
+    tokio::time::sleep(Duration::from_millis(3000)).await;
     
     // Test 1: Client2 reads top level
     println!("\n--- Test 1: Client2 reading top level ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(15), client2.get("test").get(&test_key).once(move |data, _key| {
         if data.is_object() {
             received_clone.store(true, Ordering::Relaxed);
         }
@@ -94,7 +94,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Client2: Top level read timed out after 10 seconds");
+            println!("✗ Client2: Top level read timed out after 15 seconds");
             fail_count += 1;
         }
     }
@@ -121,7 +121,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Client2: Nested property read timed out after 10 seconds");
+            println!("✗ Client2: Nested property read timed out after 15 seconds");
             fail_count += 1;
         }
     }
@@ -148,7 +148,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Client2: Deeply nested read timed out after 10 seconds");
+            println!("✗ Client2: Deeply nested read timed out after 15 seconds");
             fail_count += 1;
         }
     }

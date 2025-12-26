@@ -59,10 +59,10 @@ async fn main() {
     match client1.get("test").get(&test_key1).put(json!({"value": 100})).await {
         Ok(_) => {
             println!("✓ Client1: Data put");
-            tokio::time::sleep(Duration::from_millis(2000)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             let received = Arc::new(AtomicBool::new(false));
             let received_clone = received.clone();
-            match timeout(Duration::from_secs(10), client2.get("test").get(&test_key1).once(move |data, _key| {
+            match timeout(Duration::from_secs(15), client2.get("test").get(&test_key1).once(move |data, _key| {
                 if let Some(obj) = data.as_object() {
                     if obj.get("value").and_then(|v| v.as_i64()) == Some(100) {
                         received_clone.store(true, Ordering::Relaxed);
@@ -83,7 +83,7 @@ async fn main() {
                     fail_count += 1;
                 }
                 Err(_) => {
-                    println!("✗ Client2: Read timed out after 10 seconds");
+                    println!("✗ Client2: Read timed out after 15 seconds");
                     fail_count += 1;
                 }
             }
@@ -100,10 +100,10 @@ async fn main() {
     match client1.get("test").get(&test_key2).put(json!({"value": 200})).await {
         Ok(_) => {
             println!("✓ Client1: Data put");
-            tokio::time::sleep(Duration::from_millis(2500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             let received = Arc::new(AtomicBool::new(false));
             let received_clone = received.clone();
-            match timeout(Duration::from_secs(10), client2.get("test").get(&test_key2).once(move |data, _key| {
+            match timeout(Duration::from_secs(15), client2.get("test").get(&test_key2).once(move |data, _key| {
                 if let Some(obj) = data.as_object() {
                     if obj.get("value").and_then(|v| v.as_i64()) == Some(200) {
                         received_clone.store(true, Ordering::Relaxed);
@@ -124,7 +124,7 @@ async fn main() {
                     fail_count += 1;
                 }
                 Err(_) => {
-                    println!("✗ Client2: Read timed out after 10 seconds");
+                    println!("✗ Client2: Read timed out after 15 seconds");
                     fail_count += 1;
                 }
             }

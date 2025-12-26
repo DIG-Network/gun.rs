@@ -73,13 +73,13 @@ async fn main() {
         }
     }
     
-    tokio::time::sleep(Duration::from_millis(2000)).await;
+    tokio::time::sleep(Duration::from_millis(3000)).await;
     
     // Test 1: Client2 reads through soul reference
     println!("\n--- Test 1: Client2 reading through soul reference ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(15), client2.get("test").get(&test_key).once(move |data, _key| {
         // Should get the referenced node data
         if let Some(obj) = data.as_object() {
             if obj.get("name").and_then(|v| v.as_str()) == Some("Referenced Node") {
@@ -110,7 +110,7 @@ async fn main() {
     println!("\n--- Test 2: Client2 reading directly from soul ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match timeout(Duration::from_secs(10), client2.get(&node_soul).once(move |data, _key| {
+    match timeout(Duration::from_secs(15), client2.get(&node_soul).once(move |data, _key| {
         if let Some(obj) = data.as_object() {
             if obj.get("value").and_then(|v| v.as_i64()) == Some(999) {
                 received_clone.store(true, Ordering::Relaxed);

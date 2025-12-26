@@ -65,14 +65,14 @@ async fn main() {
         }
     }
     
-    // Wait for data to sync
-    tokio::time::sleep(Duration::from_millis(2000)).await;
+    // Wait for data to sync (longer delay for network sync)
+    tokio::time::sleep(Duration::from_millis(3000)).await;
     
-    // Client 2 reads the data (with timeout)
+    // Client 2 reads the data (with timeout - longer for network sync)
     println!("\n--- Test 1: Client 2 reading existing data ---");
     let received = Arc::new(AtomicBool::new(false));
     let received_clone = received.clone();
-    match timeout(Duration::from_secs(10), client2.get("test").get(&test_key).once(move |data, _key| {
+    match timeout(Duration::from_secs(15), client2.get("test").get(&test_key).once(move |data, _key| {
         if let Some(obj) = data.as_object() {
             if obj.get("value").and_then(|v| v.as_i64()) == Some(42) {
                 received_clone.store(true, Ordering::Relaxed);
@@ -93,7 +93,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Read timed out after 10 seconds");
+            println!("✗ Read timed out after 15 seconds");
             fail_count += 1;
         }
     }

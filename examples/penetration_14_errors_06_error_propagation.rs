@@ -12,7 +12,7 @@ async fn main() {
     
     let gun = Gun::new();
     let mut success_count = 0;
-    let mut fail_count = 0;
+    let fail_count = 0;
     
     println!("\n--- Test: Error propagation ---");
     // Test that errors propagate correctly

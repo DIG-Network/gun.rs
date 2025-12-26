@@ -18,7 +18,7 @@ async fn main() {
     let chain = gun.get("level1").get("level2").get("level3");
     
     match chain.back(Some(1)) {
-        Some(back_chain) => {
+        Some(_back_chain) => {
             println!("✓ Back one level: Success");
             success_count += 1;
         }

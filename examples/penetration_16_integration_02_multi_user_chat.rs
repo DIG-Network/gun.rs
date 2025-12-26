@@ -5,7 +5,6 @@
 use gun::Gun;
 use serde_json::json;
 use std::sync::Arc;
-use tokio::time::Duration;
 
 #[tokio::main]
 async fn main() {

@@ -3,7 +3,6 @@
 /// Tests creating Gun instances with MemoryStorage, SledStorage, and LocalStorage.
 
 use gun::{Gun, GunOptions};
-use std::path::Path;
 use tempfile::TempDir;
 
 #[tokio::main]

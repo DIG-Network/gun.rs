@@ -44,7 +44,7 @@ async fn main() {
     tokio::time::sleep(Duration::from_millis(1000)).await;
     
     let mut success_count = 0;
-    let mut fail_count = 0;
+    let fail_count = 0;
     
     // Test 1: Single level
     println!("\n--- Test 1: Single level ---");
