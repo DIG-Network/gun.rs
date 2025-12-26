@@ -3,7 +3,7 @@
 /// Tests navigation through the graph using get() with various depths.
 
 use gun::{Gun, GunOptions};
-use chia_bls::{SecretKey, PublicKey};
+use chia_bls::SecretKey;
 use std::sync::Arc;
 use tokio::time::Duration;
 

@@ -5,7 +5,6 @@
 use gun::{Gun, GunOptions};
 use chia_bls::SecretKey;
 use serde_json::json;
-use tokio::time::Duration;
 
 #[tokio::main]
 async fn main() {

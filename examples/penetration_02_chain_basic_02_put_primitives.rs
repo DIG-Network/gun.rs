@@ -3,7 +3,7 @@
 /// Tests putting strings, numbers, booleans, null, arrays, and objects.
 
 use gun::{Gun, GunOptions};
-use chia_bls::{SecretKey, PublicKey};
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

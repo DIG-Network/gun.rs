@@ -3,7 +3,7 @@
 /// Tests putting nested objects and arrays of objects.
 
 use gun::Gun;
-use chia_bls::{SecretKey, PublicKey};
+use chia_bls::SecretKey;
 use serde_json::json;
 
 #[tokio::main]

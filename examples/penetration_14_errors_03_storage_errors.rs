@@ -11,7 +11,7 @@ async fn main() {
     println!("Description: Test storage failures");
     
     let mut success_count = 0;
-    let mut fail_count = 0;
+    let fail_count = 0;
     
     println!("\n--- Test: Storage errors ---");
     // Generate BLS key pair

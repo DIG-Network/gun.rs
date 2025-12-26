@@ -3,7 +3,7 @@
 /// Tests a multi-user chat simulation.
 
 use gun::Gun;
-use chia_bls::{SecretKey, PublicKey};
+use chia_bls::SecretKey;
 use serde_json::json;
 use std::sync::Arc;
 

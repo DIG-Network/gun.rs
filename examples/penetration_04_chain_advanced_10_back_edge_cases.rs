@@ -15,7 +15,7 @@ async fn main() {
     let public_key = secret_key.public_key();
     let gun = Gun::new(secret_key, public_key);
     let mut success_count = 0;
-    let mut fail_count = 0;
+    let fail_count = 0;
     
     // Test 1: Back from root
     println!("\n--- Test 1: Back from root ---");
