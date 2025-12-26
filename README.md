@@ -90,6 +90,7 @@ The **DAM protocol** is Gun's custom P2P networking layer:
 - **Deduplication**: Prevents message loops and duplicate processing
 - **Peer discovery**: Automatic discovery of nearby peers
 - **NAT traversal**: Works behind firewalls with relay support
+- **Cryptographic security**: All messages are signed with BLS signatures and verified
 
 ### Offline-First Architecture
 
@@ -106,6 +107,15 @@ Multiple storage backends are available:
 - **LocalStorage**: File-based storage (localStorage-like)
 - **SledStorage**: High-performance embedded database (radisk mode)
 
+### Cryptographic Security
+
+Gun.rs uses BLS (Boneh-Lynn-Shacham) signatures for cryptographic security:
+- **Message signing**: All outgoing messages are signed with the secret key
+- **Message verification**: All incoming messages are verified using public keys
+- **Peer authentication**: Each peer maintains a mapping of peer IDs to public keys
+- **Tamper detection**: Invalid signatures cause messages to be rejected
+- **Message predicates**: Optional custom filtering after signature verification
+
 ---
 
 ## Crate Usage
@@ -117,9 +127,12 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 gun = { git = "https://github.com/DIG-Network/gun.rs" }
+chia_bls = "12.2"
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
+
+**Note**: Gun.rs requires BLS (Boneh-Lynn-Shacham) key pairs for cryptographic security. All messages are signed and verified using BLS signatures.
 
 ### Basic Usage
 
@@ -127,13 +140,20 @@ tokio = { version = "1.0", features = ["full"] }
 
 ```rust
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 // Simple instance (no networking, in-memory storage)
-let gun = Gun::new();
+let gun = Gun::new(secret_key, public_key);
 
 // With options (networking, storage, etc.)
 use gun::GunOptions;
-let gun = Gun::with_options(GunOptions {
+let secret_key = SecretKey::from_seed(&[1u8; 32]);
+let public_key = secret_key.public_key();
+let gun = Gun::with_options(secret_key, public_key, GunOptions {
     peers: vec!["ws://relay.example.com/gun".to_string()],
     localStorage: true,
     storage_path: Some("./gun_data".to_string()),
@@ -145,9 +165,13 @@ let gun = Gun::with_options(GunOptions {
 
 ```rust
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 
-let gun = Gun::new();
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
+let gun = Gun::new(secret_key, public_key);
 
 // Write data
 gun.get("user").get("alice").put(json!("Alice")).await?;
@@ -241,14 +265,25 @@ let root = chain.back(None);      // Go back to root -> gun root
 
 ```rust
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 // Single relay
 let gun = Gun::with_options(
+    secret_key.clone(),
+    public_key.clone(),
     GunOptions::with_relay("ws://relay.example.com/gun")
 ).await?;
 
 // Multiple relays for redundancy
+let secret_key2 = SecretKey::from_seed(&[1u8; 32]);
+let public_key2 = secret_key2.public_key();
 let gun = Gun::with_options(
+    secret_key2,
+    public_key2,
     GunOptions::with_peers(vec![
         "ws://relay1.example.com/gun".to_string(),
         "ws://relay2.example.com/gun".to_string(),
@@ -260,9 +295,16 @@ let gun = Gun::with_options(
 
 ```rust
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 // Start a relay server on port 8765
 let gun = Gun::with_options(
+    secret_key,
+    public_key,
     GunOptions::relay_server(8765)
 ).await?;
 
@@ -274,6 +316,11 @@ let gun = Gun::with_options(
 ```rust
 use gun::{Gun, GunOptions};
 use gun::webrtc::WebRTCOptions;
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 let mut webrtc_opts = WebRTCOptions::default();
 webrtc_opts.enabled = true;
@@ -283,7 +330,7 @@ let mut opts = GunOptions::default();
 opts.peers = vec!["ws://relay.example.com/gun".to_string()];
 opts.webrtc = webrtc_opts;
 
-let gun = Gun::with_options(opts).await?;
+let gun = Gun::with_options(secret_key, public_key, opts).await?;
 ```
 
 ### Storage Configuration
@@ -292,6 +339,11 @@ let gun = Gun::with_options(opts).await?;
 
 ```rust
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 let opts = GunOptions {
     localStorage: true,
@@ -299,7 +351,7 @@ let opts = GunOptions {
     ..Default::default()
 };
 
-let gun = Gun::with_options(opts).await?;
+let gun = Gun::with_options(secret_key, public_key, opts).await?;
 // Data will be persisted to ./gun_data/
 ```
 
@@ -307,6 +359,11 @@ let gun = Gun::with_options(opts).await?;
 
 ```rust
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
+
+// Generate BLS key pair
+let secret_key = SecretKey::from_seed(&[0u8; 32]);
+let public_key = secret_key.public_key();
 
 let opts = GunOptions {
     localStorage: true,
@@ -315,7 +372,7 @@ let opts = GunOptions {
     ..Default::default()
 };
 
-let gun = Gun::with_options(opts).await?;
+let gun = Gun::with_options(secret_key, public_key, opts).await?;
 // Uses high-performance sled database
 ```
 
@@ -363,11 +420,14 @@ The main entry point for the Gun.rs library.
 
 **Methods:**
 
-- `new() -> Gun`
+- `new(secret_key: SecretKey, public_key: PublicKey) -> Gun`
   - Creates a new Gun instance with default settings (no networking, in-memory storage)
+  - Requires BLS key pair for cryptographic security
+  - All messages are signed with the secret key and verified with public keys
 
-- `with_options(options: GunOptions) -> GunResult<Gun>`
+- `with_options(secret_key: SecretKey, public_key: PublicKey, options: GunOptions) -> GunResult<Gun>`
   - Creates a Gun instance with custom options
+  - Requires BLS key pair for cryptographic security
   - Async function - must be awaited
 
 - `get(key: &str) -> Arc<Chain>`
@@ -485,6 +545,13 @@ Configuration options for creating a Gun instance.
   - WebRTC configuration (see `WebRTCOptions` below)
   - Default: `WebRTCOptions::default()`
 
+- `message_predicate: Option<MessagePredicate>`
+  - Optional predicate function to filter incoming messages
+  - Receives the entire message object and returns `true` to accept, `false` to reject
+  - Called after signature verification but before message processing
+  - Useful for implementing custom filtering, rate limiting, or access control
+  - Default: `None` (all verified messages are accepted)
+
 **Methods:**
 
 - `default() -> GunOptions`
@@ -539,23 +606,32 @@ Error type for Gun.rs operations.
 - `GunError::InvalidData(String)`
   - Invalid data provided (e.g., invalid type, invalid structure)
 
-- `GunError::Storage(String)`
-  - Storage operation failed
+- `GunError::Storage(sled::Error)`
+  - Storage operation failed (from sled database)
+
+- `GunError::Serialization(serde_json::Error)`
+  - JSON serialization/deserialization failed
 
 - `GunError::Network(String)`
-  - Network operation failed
+  - Network operation failed (connection lost, timeout, etc.)
 
-- `GunError::WebSocket(String)`
-  - WebSocket operation failed
+- `GunError::InvalidSoul(String)`
+  - Invalid soul (node ID) format
+
+- `GunError::NodeNotFound`
+  - Requested node doesn't exist in the graph
+
+- `GunError::Io(std::io::Error)`
+  - I/O operation failed (file read/write, etc.)
+
+- `GunError::UrlParseError(url::ParseError)`
+  - URL parsing failed (invalid peer URL)
 
 - `GunError::WebRTC(String)`
-  - WebRTC operation failed
+  - WebRTC operation failed (connection, signaling, etc.)
 
-- `GunError::Core(String)`
-  - Core operation failed
-
-- `GunError::WebRTC(webrtc::Error)`
-  - WebRTC library error
+- `GunError::Crypto(String)`
+  - Cryptographic operation failed (encryption, signing, etc.)
 
 ### Module Reference
 
@@ -592,9 +668,14 @@ Error type for Gun.rs operations.
 #### `gun::sea`
 - Security, Encryption, Authorization module (partial implementation)
 
+#### `gun::types`
+- `MessagePredicate` - Message filtering predicate type for custom message filtering
+
 ### Type Aliases
 
 - `GunResult<T>` = `Result<T, GunError>`
+- `MessagePredicate` = `Arc<dyn Fn(&serde_json::Value) -> bool + Send + Sync>`
+  - Function type for custom message filtering
 
 ### Constants
 
@@ -608,11 +689,16 @@ None currently exported.
 
 ```rust
 use gun::Gun;
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let gun = Gun::new();
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    
+    let gun = Gun::new(secret_key, public_key);
     
     // Write data
     gun.get("user").get("alice").put(json!("Alice")).await?;
@@ -630,11 +716,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```rust
 use gun::{Gun, GunOptions};
+use chia_bls::{SecretKey, PublicKey};
 use serde_json::json;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Generate BLS key pair
+    let secret_key = SecretKey::from_seed(&[0u8; 32]);
+    let public_key = secret_key.public_key();
+    
     let gun = Gun::with_options(
+        secret_key,
+        public_key,
         GunOptions::with_relay("ws://relay.example.com/gun")
     ).await?;
     
