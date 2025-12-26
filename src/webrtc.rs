@@ -1,6 +1,25 @@
 //! WebRTC implementation for direct peer-to-peer connections
-//! Based on Gun.js lib/webrtc.js
-//! Enables NAT traversal and direct P2P connections without relays
+//!
+//! This module provides WebRTC support for direct peer-to-peer connections in Gun.
+//! WebRTC enables NAT traversal and allows peers to connect directly without needing
+//! relay servers, reducing latency and server load.
+//!
+//! Based on Gun.js `lib/webrtc.js`. WebRTC connections use data channels for
+//! bidirectional message exchange following the DAM protocol.
+//!
+//! ## Features
+//!
+//! - Direct peer-to-peer connections
+//! - NAT traversal using STUN/TURN servers
+//! - Automatic ICE candidate exchange
+//! - Data channel management
+//! - Connection lifecycle management
+//!
+//! ## Components
+//!
+//! - **WebRTCOptions**: Configuration for ICE servers and data channels
+//! - **WebRTCPeer**: Represents a WebRTC peer connection
+//! - **WebRTCManager**: Manages all WebRTC connections and signaling
 
 use crate::core::GunCore;
 use crate::dam::Mesh;
@@ -24,8 +43,27 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
-/// WebRTC configuration options
-/// Matches Gun.js opt.rtc structure
+/// Configuration options for WebRTC connections
+///
+/// Configures ICE servers (STUN/TURN), data channel settings, and connection limits.
+/// Matches Gun.js `opt.rtc` structure.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::webrtc::WebRTCOptions;
+/// use webrtc::ice_transport::ice_server::RTCIceServer;
+///
+/// let options = WebRTCOptions {
+///     ice_servers: vec![RTCIceServer {
+///         urls: vec!["stun:stun.l.google.com:19302".to_string()],
+///         ..Default::default()
+///     }],
+///     max_connections: 55,
+///     enabled: true,
+///     ..Default::default()
+/// };
+/// ```
 #[derive(Clone, Debug)]
 pub struct WebRTCOptions {
     /// ICE servers for NAT traversal (STUN/TURN)
@@ -78,8 +116,15 @@ impl Default for WebRTCOptions {
     }
 }
 
-/// WebRTC peer connection wrapper
-/// Manages RTCPeerConnection and data channel for DAM message exchange
+/// Represents a WebRTC peer connection
+///
+/// Wraps an `RTCPeerConnection` and its associated data channel for bidirectional
+/// message exchange using the DAM protocol. Handles connection lifecycle, ICE
+/// candidates, and message sending/receiving.
+///
+/// # Thread Safety
+///
+/// `WebRTCPeer` is thread-safe and can be shared across threads using `Arc<WebRTCPeer>`.
 pub struct WebRTCPeer {
     pub peer_id: String,
     pc: Arc<RTCPeerConnection>,
@@ -267,6 +312,28 @@ impl WebRTCPeer {
 }
 
 /// WebRTC manager - handles all WebRTC peer connections
+/// WebRTC connection manager
+///
+/// Manages all WebRTC peer connections, handles signaling via DAM protocol,
+/// and coordinates ICE candidate exchange. Automatically maintains connection
+/// limits and handles connection lifecycle.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::webrtc::{WebRTCManager, WebRTCOptions};
+/// use gun::core::GunCore;
+/// use gun::dam::Mesh;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let core = Arc::new(GunCore::new());
+/// let mesh = Arc::new(Mesh::new(core.clone(), /* ... */));
+/// let options = WebRTCOptions::default();
+/// let manager = Arc::new(WebRTCManager::new(core, mesh, options));
+/// # Ok(())
+/// # }
+/// ```
 pub struct WebRTCManager {
     #[allow(dead_code)] // Used internally by other modules
     core: Arc<GunCore>,

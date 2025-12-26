@@ -1,3 +1,12 @@
+//! Graph storage and conflict resolution
+//!
+//! This module implements the in-memory graph storage for Gun. The graph stores all
+//! nodes by their soul (unique identifier) and provides conflict resolution using
+//! the HAM (Hypothetical Amnesia Machine) algorithm.
+//!
+//! Based on Gun.js graph structure. The graph is thread-safe and can be shared
+//! across threads using `Arc<Graph>`.
+
 use crate::error::GunResult;
 use crate::state::Node;
 use parking_lot::RwLock;
@@ -5,43 +14,130 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Graph - stores all nodes in the database
-/// Based on Gun.js graph structure
+/// Graph storage for all nodes in the database
+///
+/// The graph is an in-memory hash map that stores nodes by their soul (unique identifier).
+/// It provides thread-safe access and automatic conflict resolution when merging updates.
+///
+/// # Thread Safety
+///
+/// `Graph` is thread-safe and uses `parking_lot::RwLock` for concurrent access.
+/// Multiple threads can read simultaneously, or a single thread can write exclusively.
+///
+/// # Conflict Resolution
+///
+/// When merging nodes, the graph uses the HAM algorithm:
+/// - Compare state timestamps for each property
+/// - Higher state wins
+/// - Merge non-conflicting properties
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::graph::Graph;
+/// use gun::state::Node;
+///
+/// let graph = Graph::new();
+/// let node = Node::with_soul("user_123".to_string());
+/// graph.put("user_123", node)?;
+///
+/// if let Some(loaded_node) = graph.get("user_123") {
+///     println!("Found node: {:?}", loaded_node);
+/// }
+/// ```
 #[derive(Clone)]
 pub struct Graph {
     nodes: Arc<RwLock<HashMap<String, Node>>>,
 }
 
 impl Graph {
+    /// Create a new empty graph
     pub fn new() -> Self {
         Self {
             nodes: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    /// Get a node by soul
+    /// Get a node by its soul (unique identifier)
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier of the node
+    ///
+    /// # Returns
+    /// The node if found, or `None` if it doesn't exist.
     pub fn get(&self, soul: &str) -> Option<Node> {
         self.nodes.read().get(soul).cloned()
     }
 
-    /// Put a node into the graph
+    /// Store a node in the graph by its soul
+    ///
+    /// If a node with the same soul already exists, it will be overwritten.
+    /// For conflict resolution, use [`merge`](Self::merge) instead.
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier for the node
+    /// * `node` - The node to store
+    ///
+    /// # Returns
+    /// `Ok(())` on success, or a `GunError` if something goes wrong.
     pub fn put(&self, soul: &str, node: Node) -> GunResult<()> {
         self.nodes.write().insert(soul.to_string(), node);
         Ok(())
     }
 
-    /// Check if a node exists
+    /// Check if a node with the given soul exists in the graph
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier to check
+    ///
+    /// # Returns
+    /// `true` if the node exists, `false` otherwise.
     pub fn has(&self, soul: &str) -> bool {
         self.nodes.read().contains_key(soul)
     }
 
-    /// Get all nodes (for debugging/testing)
+    /// Get a copy of all nodes in the graph (for debugging/testing)
+    ///
+    /// **Warning**: This clones all nodes, which can be expensive for large graphs.
+    /// Only use this for debugging or small datasets.
+    ///
+    /// # Returns
+    /// A `HashMap` mapping soul to node for all nodes in the graph.
     pub fn all_nodes(&self) -> HashMap<String, Node> {
         self.nodes.read().clone()
     }
 
-    /// Merge a node into the graph with conflict resolution
-    /// Based on HAM (Hypothetical Amnesia Machine) algorithm
+    /// Merge a node into the graph with automatic conflict resolution
+    ///
+    /// This method implements the HAM (Hypothetical Amnesia Machine) algorithm:
+    /// - If the node doesn't exist, it's inserted
+    /// - If the node exists, properties are merged based on state timestamps
+    /// - Higher state always wins in conflicts
+    /// - Non-conflicting properties are preserved
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier for the node
+    /// * `incoming` - The node to merge in
+    /// * `state_fn` - Function that generates the current state timestamp
+    ///
+    /// # Returns
+    /// The merged node after conflict resolution.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use gun::graph::Graph;
+    /// use gun::state::{Node, State};
+    /// use serde_json::json;
+    ///
+    /// let graph = Graph::new();
+    /// let state = State::new();
+    ///
+    /// let mut node1 = Node::with_soul("user_123".to_string());
+    /// node1.data.insert("name".to_string(), json!("Alice"));
+    ///
+    /// let merged = graph.merge("user_123", &node1, || state.next())?;
+    /// ```
     pub fn merge(
         &self,
         soul: &str,

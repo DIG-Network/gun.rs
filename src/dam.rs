@@ -1,3 +1,31 @@
+//! DAM (Directed Acyclic Mesh) protocol implementation
+//!
+//! This module implements Gun's DAM protocol for peer-to-peer message routing with
+//! automatic deduplication and cryptographic signing. DAM ensures:
+//!
+//! - **No message loops**: Messages are deduplicated using message IDs
+//! - **Cryptographic security**: All messages are signed with BLS signatures
+//! - **Reliable delivery**: Automatic retry and queuing for offline peers
+//! - **Efficient routing**: Messages are routed through the peer mesh
+//!
+//! Based on Gun.js `mesh.js`. The DAM protocol is the foundation of Gun's
+//! decentralized networking.
+//!
+//! ## Message Format
+//!
+//! All DAM messages include:
+//! - `#`: Message ID (SHA256 hash of message without signatures)
+//! - `sigs`: Array of BLS signatures and public keys
+//! - Message payload (e.g., `put`, `get`, `dam`)
+//!
+//! ## Peer Management
+//!
+//! The `Mesh` struct manages all peer connections:
+//! - Tracks connected peers
+//! - Routes messages to peers
+//! - Handles message signing and verification
+//! - Manages peer public keys for verification
+
 use crate::core::GunCore;
 use crate::dup::Dup;
 use crate::error::GunResult;
@@ -9,9 +37,20 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
-/// DAM (Directed Acyclic Mesh) protocol implementation
-/// Matches Gun.js mesh.js - handles P2P message routing with deduplication
-
+/// Represents a peer connection in the DAM mesh
+///
+/// Peers are identified by a URL and have associated connection state including
+/// message queues, batching information, and retry logic.
+///
+/// # Fields
+///
+/// - `id`: Unique identifier for this peer connection
+/// - `url`: WebSocket URL of the peer
+/// - `pid`: Peer ID in the DAM mesh (set after handshake)
+/// - `tx`: Message sender channel for WebSocket communication
+/// - `batch`, `tail`, `queue`: Message batching and queuing
+/// - `last`: Last message ID sent (for ordering)
+/// - `retry`, `tried`: Retry logic for connection attempts
 #[derive(Clone, Debug)]
 pub struct Peer {
     pub id: String,
@@ -67,7 +106,32 @@ impl Peer {
 }
 
 /// DAM Mesh - handles message routing and peer communication
-/// Based on Gun.js mesh.js
+///
+/// The mesh is the central coordinator for all peer-to-peer communication in Gun.
+/// It manages:
+///
+/// - Peer connections and routing
+/// - Message signing and verification (BLS signatures)
+/// - Message deduplication
+/// - Message broadcasting and targeted delivery
+/// - Peer public key management
+///
+/// Based on Gun.js `mesh.js`. The mesh is thread-safe and can be shared across
+/// threads using `Arc<Mesh>`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::dam::Mesh;
+/// use gun::core::GunCore;
+/// use chia_bls::{SecretKey, PublicKey};
+/// use std::sync::Arc;
+///
+/// let core = Arc::new(GunCore::new());
+/// let secret_key = SecretKey::from_seed(&[0u8; 32]);
+/// let public_key = secret_key.public_key();
+/// let mesh = Arc::new(Mesh::new(core, secret_key, public_key, None));
+/// ```
 pub struct Mesh {
     pub dup: Arc<RwLock<Dup>>,
     peers: Arc<RwLock<HashMap<String, Peer>>>,
@@ -81,6 +145,9 @@ pub struct Mesh {
     message_predicate: Option<MessagePredicate>, // Optional predicate for custom message filtering
 }
 
+/// Configuration options for the DAM mesh
+///
+/// These options control message batching, size limits, and retry behavior.
 #[derive(Clone, Debug)]
 pub struct MeshOptions {
     pub max_message_size: usize, // default 300MB * 0.3

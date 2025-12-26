@@ -1,3 +1,15 @@
+//! Pluggable storage backends for persistent data
+//!
+//! This module provides storage abstractions for Gun, allowing data to be persisted
+//! to disk or other backends. Multiple storage implementations are provided:
+//!
+//! - **MemoryStorage**: In-memory only (no persistence)
+//! - **LocalStorage**: File-based storage (similar to browser localStorage)
+//! - **SledStorage**: High-performance embedded database
+//!
+//! Based on Gun.js storage adapters (localStorage, RAD, S3, etc.). All storage
+//! backends implement the [`Storage`](Storage) trait for a uniform interface.
+
 use crate::error::{GunError, GunResult};
 use crate::state::Node;
 use async_trait::async_trait;
@@ -7,22 +19,90 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
-/// Storage trait - pluggable storage backends
-/// Based on Gun.js storage adapters (localStorage, RAD, S3, etc.)
+/// Storage backend trait for persistent data storage
+///
+/// All storage backends in Gun implement this trait. It provides a simple interface
+/// for storing and retrieving nodes by their soul (unique identifier).
+///
+/// Based on Gun.js storage adapters. The trait is async to support I/O operations
+/// and is `Send + Sync` to work across threads.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::storage::{Storage, LocalStorage};
+/// use gun::state::Node;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let storage: Arc<dyn Storage> = Arc::new(LocalStorage::new("./gun_data")?);
+///
+/// let node = Node::with_soul("user_123".to_string());
+/// storage.put("user_123", &node).await?;
+///
+/// if let Some(loaded_node) = storage.get("user_123").await? {
+///     println!("Loaded node: {:?}", loaded_node);
+/// }
+/// # Ok(())
+/// # }
+/// ```
 #[async_trait]
 pub trait Storage: Send + Sync {
-    /// Get a node by soul
+    /// Retrieve a node by its soul (unique identifier)
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier of the node to retrieve
+    ///
+    /// # Returns
+    /// `Ok(Some(node))` if found, `Ok(None)` if not found, or `GunError` on failure.
     async fn get(&self, soul: &str) -> GunResult<Option<Node>>;
 
-    /// Put a node (save)
+    /// Store a node by its soul (unique identifier)
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier for the node
+    /// * `node` - The node to store
+    ///
+    /// # Returns
+    /// `Ok(())` on success, or `GunError` on failure.
     async fn put(&self, soul: &str, node: &Node) -> GunResult<()>;
 
-    /// Check if a node exists
+    /// Check if a node exists in storage
+    ///
+    /// # Arguments
+    /// * `soul` - The unique identifier to check
+    ///
+    /// # Returns
+    /// `Ok(true)` if the node exists, `Ok(false)` if not, or `GunError` on failure.
     async fn has(&self, soul: &str) -> GunResult<bool>;
 }
 
-/// In-memory storage (no persistence)
-/// Useful for testing or temporary data
+/// In-memory storage backend (no persistence)
+///
+/// Stores data in a `HashMap` in memory. Data is lost when the instance is dropped.
+/// This is useful for:
+/// - Testing
+/// - Temporary data
+/// - Performance-critical scenarios where persistence isn't needed
+///
+/// # Thread Safety
+///
+/// `MemoryStorage` is thread-safe and can be shared across threads using `Arc<MemoryStorage>`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::storage::{Storage, MemoryStorage};
+/// use gun::state::Node;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let storage = Arc::new(MemoryStorage::new());
+/// let node = Node::with_soul("user_123".to_string());
+/// storage.put("user_123", &node).await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct MemoryStorage {
     data: RwLock<HashMap<String, Node>>,
 }
@@ -60,13 +140,53 @@ impl Default for MemoryStorage {
     }
 }
 
-/// Sled-based persistent storage
-/// Uses sled embedded database for persistence
+/// Sled-based persistent storage backend
+///
+/// Uses the [sled](https://docs.rs/sled) embedded database for high-performance,
+/// persistent storage. This is recommended for:
+/// - Large datasets
+/// - High write throughput
+/// - Production applications
+///
+/// Sled provides:
+/// - ACID transactions
+/// - High performance
+/// - Automatic crash recovery
+/// - Efficient storage format
+///
+/// # Thread Safety
+///
+/// `SledStorage` is thread-safe and can be shared across threads using `Arc<SledStorage>`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::storage::{Storage, SledStorage};
+/// use gun::state::Node;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let storage = Arc::new(SledStorage::new("./gun_data")?);
+/// let node = Node::with_soul("user_123".to_string());
+/// storage.put("user_123", &node).await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct SledStorage {
     db: sled::Db,
 }
 
 impl SledStorage {
+    /// Create a new SledStorage instance
+    ///
+    /// # Arguments
+    /// * `path` - Directory path where the sled database will be stored
+    ///
+    /// # Returns
+    /// `Ok(SledStorage)` if initialization succeeds, or `GunError` on failure.
+    ///
+    /// # Errors
+    /// Returns `GunError::Storage` if the sled database cannot be opened or created.
     pub fn new(path: &str) -> GunResult<Self> {
         let db = sled::open(path)?;
         Ok(Self { db })

@@ -1,11 +1,45 @@
+//! Event system for reactive updates
+//!
+//! This module implements Gun's event emitter pattern, allowing components to subscribe
+//! to and emit events. Events are used throughout Gun for:
+//! - Notifying listeners when nodes are updated
+//! - Triggering network synchronization
+//! - Reacting to graph changes
+//!
+//! Based on Gun.js `onto.js` and event system. The event emitter is thread-safe and
+//! supports multiple listeners per event type.
+
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-/// Event system - handles events and hooks
-/// Based on Gun.js onto.js and event system
+/// Event callback function type
+///
+/// All event listeners must implement this type. The callback receives the event
+/// that was emitted and can access its type and data.
+///
+/// # Thread Safety
+///
+/// Callbacks must be `Send + Sync` to be used across threads.
 pub type EventCallback = Box<dyn Fn(&Event) + Send + Sync>;
 
+/// An event in the Gun event system
+///
+/// Events consist of:
+/// - `event_type`: A string identifier for the event (e.g., "node_update:user_123")
+/// - `data`: Arbitrary JSON data associated with the event
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::events::Event;
+/// use serde_json::json;
+///
+/// let event = Event {
+///     event_type: "node_update:user_123".to_string(),
+///     data: json!({"name": "Alice", "age": 30}),
+/// };
+/// ```
 #[derive(Clone, Debug)]
 pub struct Event {
     pub event_type: String,
@@ -17,12 +51,44 @@ struct ListenerEntry {
     callback: Arc<EventCallback>,
 }
 
+/// Event emitter for subscribing to and emitting events
+///
+/// The event emitter maintains a map of event types to their listeners.
+/// Multiple listeners can subscribe to the same event type, and all will be
+/// called when the event is emitted.
+///
+/// # Thread Safety
+///
+/// `EventEmitter` is thread-safe and can be shared across threads using `Arc<EventEmitter>`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::events::{EventEmitter, Event};
+/// use serde_json::json;
+/// use std::sync::Arc;
+///
+/// let emitter = Arc::new(EventEmitter::new());
+///
+/// // Subscribe to events
+/// let emitter_clone = emitter.clone();
+/// emitter.on("test_event", Box::new(move |event: &Event| {
+///     println!("Received event: {:?}", event);
+/// }));
+///
+/// // Emit an event
+/// emitter.emit(&Event {
+///     event_type: "test_event".to_string(),
+///     data: json!({"message": "hello"}),
+/// });
+/// ```
 pub struct EventEmitter {
     listeners: Arc<RwLock<HashMap<String, Vec<ListenerEntry>>>>,
     id_counter: Arc<Mutex<u64>>,
 }
 
 impl EventEmitter {
+    /// Create a new event emitter
     pub fn new() -> Self {
         Self {
             listeners: Arc::new(RwLock::new(HashMap::new())),

@@ -1,3 +1,16 @@
+//! WebSocket support for peer connections
+//!
+//! This module provides WebSocket client and server implementations for Gun's
+//! peer-to-peer networking. WebSockets are used to connect to relay servers
+//! and other peers for message exchange.
+//!
+//! ## Components
+//!
+//! - **WebSocketClient**: Connects to peer URLs (relay servers)
+//! - **WebSocketServer**: Listens for incoming peer connections (relay mode)
+//!
+//! Both client and server handle the DAM protocol message exchange over WebSocket.
+
 use crate::core::GunCore;
 use crate::dam::{Mesh, Peer};
 use crate::error::GunResult;
@@ -10,7 +23,27 @@ use tokio_tungstenite::accept_async;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
-/// WebSocket client connection handler
+/// WebSocket client for connecting to peers
+///
+/// Handles outgoing WebSocket connections to peer URLs (typically relay servers).
+/// Provides automatic reconnection with exponential backoff.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::websocket::WebSocketClient;
+/// use gun::core::GunCore;
+/// use gun::dam::Mesh;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let core = Arc::new(GunCore::new());
+/// let mesh = Arc::new(Mesh::new(core.clone(), /* ... */));
+/// let client = WebSocketClient::new(core, mesh);
+/// client.connect("ws://relay.example.com/gun").await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct WebSocketClient {
     core: Arc<GunCore>,
     mesh: Arc<Mesh>,
@@ -159,7 +192,27 @@ impl WebSocketClient {
     }
 }
 
-/// WebSocket server for relay mode
+/// WebSocket server for accepting incoming peer connections
+///
+/// Runs a WebSocket server that listens for peer connections. Used when Gun is
+/// running in "super peer" (relay) mode to help other peers with NAT traversal.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::websocket::WebSocketServer;
+/// use gun::core::GunCore;
+/// use gun::dam::Mesh;
+/// use std::sync::Arc;
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let core = Arc::new(GunCore::new());
+/// let mesh = Arc::new(Mesh::new(core.clone(), /* ... */));
+/// let server = WebSocketServer::new(core, mesh, 8080);
+/// server.start().await?;
+/// # Ok(())
+/// # }
+/// ```
 pub struct WebSocketServer {
     core: Arc<GunCore>,
     mesh: Arc<Mesh>,

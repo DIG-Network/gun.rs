@@ -1,14 +1,55 @@
+//! Data validation and soul reference detection
+//!
+//! This module validates data values according to Gun's rules and detects soul references.
+//! Based on Gun.js `valid.js` - matches the exact validation logic.
+//!
+//! ## Valid Data Types
+//!
+//! - `null` - Valid (represents deletion)
+//! - `string` - Always valid
+//! - `boolean` - Always valid
+//! - `number` - Valid if not `Infinity` or `NaN`
+//! - Soul reference - Object with only `{"#": "soul_id"}` key
+//! - Objects - Not directly valid (must be stored as nodes)
+//! - Arrays - Not directly supported
+
 use serde_json::Value;
 
-/// Valid module - validates and checks if data is a soul (reference)
-/// Based on Gun.js valid.js - matches the exact validation logic
+/// Validate a value according to Gun's rules and detect soul references
 ///
-/// Main validation function - matches Gun.js valid()
-/// Valid values are: null, string, boolean, number (!Infinity, !NaN), or soul relation
-/// Returns:
-/// - true if valid (for simple values)
-/// - Some(soul_string) if it's a soul reference
-/// - false if invalid
+/// This is the main validation function matching Gun.js `valid()`. It checks if
+/// a value is valid for storage in Gun and detects if it's a soul reference.
+///
+/// # Arguments
+/// * `value` - The JSON value to validate
+///
+/// # Returns
+///
+/// - `Ok(true)` - Valid simple value (null, string, boolean, or valid number)
+/// - `Err(Some(soul))` - It's a soul reference object `{"#": soul}`
+/// - `Ok(false)` - Invalid value (Infinity, NaN, array, or complex object)
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::valid::valid;
+/// use serde_json::json;
+///
+/// // Valid simple value
+/// assert_eq!(valid(&json!("hello")), Ok(true));
+///
+/// // Valid number
+/// assert_eq!(valid(&json!(42)), Ok(true));
+///
+/// // Invalid number
+/// assert_eq!(valid(&json!(f64::INFINITY)), Ok(false));
+///
+/// // Soul reference
+/// match valid(&json!({"#": "user_123"})) {
+///     Err(Some(soul)) => println!("Found soul reference: {}", soul),
+///     _ => {}
+/// }
+/// ```
 pub fn valid(value: &Value) -> Result<bool, Option<String>> {
     match value {
         Value::Null => Ok(true), // null is valid (deletes)
@@ -54,8 +95,33 @@ pub fn valid(value: &Value) -> Result<bool, Option<String>> {
     }
 }
 
-/// Check if a value is a valid soul (reference to another node)
-/// Returns Some(soul) if it's a soul string or soul object, None otherwise
+/// Check if a value is a valid soul reference
+///
+/// This checks if a value represents a soul reference, either as:
+/// - A soul reference object: `{"#": "soul_id"}`
+/// - A string that could be a soul ID
+///
+/// # Arguments
+/// * `value` - The JSON value to check
+///
+/// # Returns
+/// `Some(soul_string)` if it's a soul reference, `None` otherwise.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::valid::valid_soul;
+/// use serde_json::json;
+///
+/// // Soul reference object
+/// assert_eq!(valid_soul(&json!({"#": "user_123"})), Some("user_123".to_string()));
+///
+/// // Soul string
+/// assert_eq!(valid_soul(&json!("user_123")), Some("user_123".to_string()));
+///
+/// // Not a soul
+/// assert_eq!(valid_soul(&json!("hello")), Some("hello".to_string())); // Strings are treated as potential souls
+/// ```
 pub fn valid_soul(value: &Value) -> Option<String> {
     match valid(value) {
         Err(Some(soul)) => Some(soul), // It's a soul reference object
@@ -75,8 +141,29 @@ pub fn valid_soul(value: &Value) -> Option<String> {
     }
 }
 
-/// Check if data is valid for gun
-/// This is a convenience function for basic validation
+/// Check if data is valid for storage in Gun
+///
+/// This is a convenience function that returns `true` if the value is either:
+/// - A valid simple value (validated by [`valid`](valid))
+/// - A soul reference
+///
+/// # Arguments
+/// * `value` - The JSON value to check
+///
+/// # Returns
+/// `true` if the value is valid for Gun, `false` otherwise.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::valid::is_valid_data;
+/// use serde_json::json;
+///
+/// assert!(is_valid_data(&json!("hello")));
+/// assert!(is_valid_data(&json!(42)));
+/// assert!(is_valid_data(&json!({"#": "user_123"})));
+/// assert!(!is_valid_data(&json!(f64::INFINITY)));
+/// ```
 pub fn is_valid_data(value: &Value) -> bool {
     match valid(value) {
         Ok(true) => true,

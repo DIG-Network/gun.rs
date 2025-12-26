@@ -6,7 +6,26 @@ use crate::storage::Storage;
 use std::sync::Arc;
 
 /// Core Gun instance structure
-/// Based on Gun.js root.js and core.js
+///
+/// This is the central engine that powers all Gun operations. It manages:
+/// - **Graph**: In-memory storage of all nodes
+/// - **State**: Timestamp generation for conflict resolution
+/// - **Events**: Event system for reactive updates
+/// - **Storage**: Optional persistent storage backend
+/// - **Dedup**: Message deduplication for network operations
+///
+/// Based on Gun.js `root.js` and `core.js`. This is an internal structure
+/// that is wrapped by the public [`Gun`](crate::Gun) type.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use gun::core::GunCore;
+///
+/// let core = GunCore::new();
+/// let soul = core.uuid(None);
+/// println!("Generated soul: {}", soul);
+/// ```
 pub struct GunCore {
     pub graph: Arc<Graph>,
     pub state: Arc<State>,
@@ -17,6 +36,13 @@ pub struct GunCore {
 }
 
 impl GunCore {
+    /// Create a new GunCore instance without persistent storage
+    ///
+    /// This creates an in-memory only instance. Use [`with_storage`](Self::with_storage)
+    /// to enable persistent storage.
+    ///
+    /// # Returns
+    /// A new `GunCore` instance with no persistent storage.
     pub fn new() -> Self {
         Self {
             graph: Arc::new(Graph::new()),
@@ -28,6 +54,31 @@ impl GunCore {
         }
     }
 
+    /// Create a new GunCore instance with persistent storage
+    ///
+    /// This enables data persistence across application restarts. The storage
+    /// backend can be any implementation of the [`Storage`](crate::storage::Storage) trait,
+    /// such as [`LocalStorage`](crate::storage::LocalStorage) or [`SledStorage`](crate::storage::SledStorage).
+    ///
+    /// # Arguments
+    /// * `storage` - Storage backend implementing the `Storage` trait
+    ///
+    /// # Returns
+    /// A new `GunCore` instance with persistent storage enabled.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use gun::core::GunCore;
+    /// use gun::storage::LocalStorage;
+    /// use std::sync::Arc;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let storage = Arc::new(LocalStorage::new("./gun_data")?);
+    /// let core = GunCore::with_storage(storage);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_storage(storage: Arc<dyn Storage>) -> Self {
         Self {
             graph: Arc::new(Graph::new()),
@@ -40,7 +91,28 @@ impl GunCore {
     }
 
     /// Generate a new soul (UUID) for a node
-    /// Based on Gun.js uuid generation: Gun.state().toString(36).replace('.','') + String.random(12)
+    ///
+    /// Souls are unique identifiers for nodes in the Gun graph. They combine:
+    /// - A state-based component derived from the current timestamp
+    /// - A random component for uniqueness
+    ///
+    /// Based on Gun.js uuid generation: `Gun.state().toString(36).replace('.','') + String.random(12)`
+    ///
+    /// # Arguments
+    /// * `length` - Optional length of the random component (default: 12)
+    ///
+    /// # Returns
+    /// A unique soul string suitable for use as a node identifier.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use gun::core::GunCore;
+    ///
+    /// let core = GunCore::new();
+    /// let soul = core.uuid(None); // Default 12-character random suffix
+    /// let short_soul = core.uuid(Some(6)); // 6-character random suffix
+    /// ```
     pub fn uuid(&self, length: Option<usize>) -> String {
         let len = length.unwrap_or(12);
         let state = self.state.next();
@@ -64,7 +136,25 @@ impl GunCore {
         format!("{}{}", state_str, random_part)
     }
 
-    /// Generate a simple UUID (just random, for message IDs, etc.)
+    /// Generate a simple random ID (for message IDs, etc.)
+    ///
+    /// This generates a pure random alphanumeric string without the state component.
+    /// Useful for message IDs and other temporary identifiers.
+    ///
+    /// # Arguments
+    /// * `length` - Length of the random ID to generate
+    ///
+    /// # Returns
+    /// A random alphanumeric string of the specified length.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use gun::core::GunCore;
+    ///
+    /// let core = GunCore::new();
+    /// let message_id = core.random_id(16);
+    /// ```
     pub fn random_id(&self, length: usize) -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
@@ -79,7 +169,13 @@ impl GunCore {
             .collect()
     }
 
-    /// Get next chain ID
+    /// Get the next unique chain ID
+    ///
+    /// Chain IDs are used internally to track chain instances for listener management.
+    /// This increments atomically and returns a unique identifier for each chain.
+    ///
+    /// # Returns
+    /// A unique chain ID (monotonically increasing counter).
     pub fn next_chain_id(&self) -> u64 {
         self.id_counter
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
