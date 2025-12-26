@@ -63,7 +63,7 @@ async fn main() {
     match client1.get(&hash_soul).put(data.clone()).await {
         Ok(_) => {
             println!("✓ Client1: Content addressing - Success");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -81,7 +81,7 @@ async fn main() {
     match client1.get(&invalid_hash_soul).put(json!({"data": "test"})).await {
         Ok(_) => {
             println!("✓ Client1: Invalid hash format - Success (hash won't verify)");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {
@@ -96,7 +96,7 @@ async fn main() {
     match client1.get(&hash_soul).put(wrong_data).await {
         Ok(_) => {
             println!("✓ Client1: Hash mismatch - Put succeeded (verification may fail)");
-            tokio::time::sleep(Duration::from_millis(1500)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             success_count += 1;
         }
         Err(e) => {

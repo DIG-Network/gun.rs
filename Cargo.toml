@@ -1,6 +1,6 @@
 [package]
 name = "gun-rs"
-version = "0.1.1"
+version = "1.0.2"
 edition = "2021"
 authors = ["Gun.rs Contributors"]
 description = "A realtime, decentralized, offline-first, graph data synchronization engine (Rust port)"

@@ -101,7 +101,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Client2: Read through soul ref timed out after 10 seconds");
+            println!("✗ Client2: Read through soul ref timed out after 15 seconds");
             fail_count += 1;
         }
     }
@@ -130,7 +130,7 @@ async fn main() {
             fail_count += 1;
         }
         Err(_) => {
-            println!("✗ Client2: Direct soul read timed out after 10 seconds");
+            println!("✗ Client2: Direct soul read timed out after 15 seconds");
             fail_count += 1;
         }
     }

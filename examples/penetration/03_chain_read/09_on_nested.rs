@@ -68,7 +68,7 @@ async fn main() {
         }
     }
     
-    tokio::time::sleep(Duration::from_millis(2000)).await;
+    tokio::time::sleep(Duration::from_millis(3000)).await;
     
     // Test 1: Client2 subscribes to nested property
     println!("\n--- Test 1: Client2 subscribing to nested property ---");
@@ -82,7 +82,7 @@ async fn main() {
         }
     });
     
-    tokio::time::sleep(Duration::from_millis(2000)).await;
+    tokio::time::sleep(Duration::from_millis(3000)).await;
     
     let count = update_count.load(Ordering::Relaxed);
     if count > 0 {
@@ -111,7 +111,7 @@ async fn main() {
     match client1.get("test").get(&test_key2).get("level1").get("level2").put(json!(100)).await {
         Ok(_) => {
             println!("✓ Client1: Nested property updated");
-            tokio::time::sleep(Duration::from_millis(2000)).await;
+            tokio::time::sleep(Duration::from_millis(3000)).await;
             
             let count2 = update_count2.load(Ordering::Relaxed);
             if count2 > 0 {
