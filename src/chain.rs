@@ -260,6 +260,42 @@ impl Chain {
             storage.put(&soul, &node).await?;
         }
 
+        // If we have a key, we need to store the soul reference in the parent node
+        // This allows once() to find the data later via path resolution
+        if let Some(key) = &self.key {
+            if let Some(parent) = &self.parent {
+                // Try to resolve or create parent node
+                if let Some(parent_soul) = &parent.soul {
+                    // Parent has a soul, store reference there
+                    if let Some(mut parent_node) = self.core.graph.get(parent_soul) {
+                        let state = self.core.state.next();
+                        let soul_ref = serde_json::json!({"#": soul});
+                        parent_node.data.insert(key.clone(), soul_ref.clone());
+                        crate::state::State::ify(&mut parent_node, Some(key), Some(state), Some(soul_ref), Some(parent_soul));
+                        self.core.graph.put(parent_soul, parent_node.clone())?;
+                        self.emit_update(parent_soul, &parent_node.data);
+                    }
+                } else {
+                    // Parent has no soul - we need to create one or use a root index
+                    // For now, we'll create a parent soul if the parent has a key
+                    if let Some(parent_key) = &parent.key {
+                        // Create a soul for the parent based on the path
+                        // Use a deterministic approach: hash the path
+                        let path = format!("{}:{}", parent_key, key);
+                        let parent_soul = self.core.uuid(Some(path.len()));
+                        // Create parent node and store the reference
+                        let mut parent_node = Node::with_soul(parent_soul.clone());
+                        let state = self.core.state.next();
+                        let soul_ref = serde_json::json!({"#": soul});
+                        parent_node.data.insert(key.clone(), soul_ref.clone());
+                        crate::state::State::ify(&mut parent_node, Some(key), Some(state), Some(soul_ref), Some(&parent_soul));
+                        self.core.graph.put(&parent_soul, parent_node.clone())?;
+                        self.emit_update(&parent_soul, &parent_node.data);
+                    }
+                }
+            }
+        }
+
         Ok(Arc::new(Chain::with_soul(
             self.core.clone(),
             soul,
@@ -452,10 +488,42 @@ impl Chain {
     where
         F: FnOnce(Value, Option<String>),
     {
+        // Try to resolve soul from path if we don't have one
         let soul = match &self.soul {
             Some(s) => s.clone(),
             None => {
-                // Return undefined/None if no soul
+                // Try to resolve path by checking if we can find data through the parent chain
+                // This handles cases like: gun.get("test").get("read_test").put(obj).once(...)
+                if let Some(key) = &self.key {
+                    if let Some(parent) = &self.parent {
+                        // Try to find the soul by looking in parent's node
+                        if let Some(parent_soul) = &parent.soul {
+                            if let Some(parent_node) = self.core.graph.get(parent_soul) {
+                                if let Some(value) = parent_node.data.get(key) {
+                                    // Check if it's a soul reference
+                                    if let Some(obj) = value.as_object() {
+                                        if let Some(soul_ref) = obj.get("#") {
+                                            if let Some(soul_str) = soul_ref.as_str() {
+                                                // Found a soul reference, use it
+                                                let resolved_soul = soul_str.to_string();
+                                                // Continue with the resolved soul
+                                                if let Some(node) = self.core.graph.get(&resolved_soul) {
+                                                    let node_data = serde_json::to_value(&node.data).unwrap_or(Value::Null);
+                                                    callback(node_data, self.key.clone());
+                                                    return Ok(Arc::new(self.clone()));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // Not a soul reference, return the value directly
+                                    callback(value.clone(), self.key.clone());
+                                    return Ok(Arc::new(self.clone()));
+                                }
+                            }
+                        }
+                    }
+                }
+                // Could not resolve path - return null
                 callback(Value::Null, self.key.clone());
                 return Ok(Arc::new(self.clone()));
             }
